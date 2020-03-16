@@ -26,8 +26,11 @@ void loadLib(){
   // For some reasons ROOT has not a dictionary for vector of vectors
   gInterpreter->GenerateDictionary("vector<vector<unsigned short>>", "vector");
 
-  // Custom classes
+  // Add includes
   gInterpreter->AddIncludePath(includepath.c_str());
+  gInterpreter->AddIncludePath("/usr/local/include/eigen3");
+
+  // Compile custom classes
   gROOT->LoadMacro((currentdir+"/../src/Waveform.cc+").c_str());
   gROOT->LoadMacro((currentdir+"/../src/Pmt.cc+").c_str());
 

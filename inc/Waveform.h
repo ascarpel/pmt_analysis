@@ -11,6 +11,10 @@
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
+#include <Eigen/Core>
+#include <unsupported/Eigen/FFT>
+#include <numeric>
+#include <complex>
 
 #include "TH1D.h"
 
@@ -23,6 +27,7 @@ class Waveform
 
       typedef vector<unsigned short> Rawdigits_t;
       typedef vector<double> Waveform_t;
+      typedef vector<complex<double>> Complex_t;
 
       Waveform();
       Waveform(int run, int subrun, int event ,int board, int channel);
@@ -43,8 +48,11 @@ class Waveform
       Rawdigits_t getRawWaveform(){ return m_raw_waveform; };
       Waveform_t getWaveform(){ return m_waveform; };
 
+      // Noise
+      void removeBaseline();
       double getBaselineMean(){return baseline_mean;};
       double getBaselineWidth(){return baseline_width;}
+      Complex_t doFFT(Waveform_t m_time_domain);
 
       // Indentify and characterize pulses
       bool hasSignal(double n_sigma);
@@ -58,6 +66,8 @@ class Waveform
       // Helpers
       bool find(int run, int subrun, int event, int board, int channel );
       TH1D* getWaveformHist();
+      TH1D* getRawWaveformHist();
+      TH1D* getPowerSpectrum();
 
     private:
 
@@ -68,7 +78,8 @@ class Waveform
       int m_channel;
 
       int m_nsamples;
-      double m_sampling_period=1.0;
+      double m_sampling_period=2.; //in ns
+      double m_sampling_freq = (1./m_sampling_period)*1e3; //in MHz
 
       int n_sample_baseline=200;
       double baseline_mean=0.0;
@@ -82,7 +93,7 @@ class Waveform
       double m_amplitude=0.0;
       double m_integral=0.0;
 
-      void removeBaseline();
+
 };
 
 
