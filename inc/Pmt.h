@@ -34,12 +34,13 @@ class PMT
     int getBoard(){ return m_board; };
     int getChannel(){ return m_channel; }
 
-    // vector<double> getAmplitudes(){ return m_amplitude_array; };
+    TH1D* getNoiseHist(){ return h_noise; };
 
     // Helpers
     void clean();
     void initHist();
     void writeHist();
+
 
   private:
 
@@ -47,10 +48,12 @@ class PMT
     int m_board;
     int m_channel;
 
-    // vector<double> m_amplitude_array;
-
     TH1D *h_amplitude;
     TH1D *h_amplitude_low;
+    TH1D *h_noise;
+
+
+    // vector<double> m_amplitude_array;
 
 };
 
