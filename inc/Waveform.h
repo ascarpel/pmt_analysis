@@ -65,6 +65,7 @@ class Waveform
 
       // Helpers
       bool find(int run, int subrun, int event, int board, int channel );
+      TH1D* getRawWaveformHist();
       TH1D* getWaveformHist();
       TH1D* getRawWaveformHist();
       TH1D* getPowerSpectrum();

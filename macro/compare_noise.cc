@@ -14,7 +14,6 @@ void compare_noise()
 
 
    vector<string> filenames = {
-    "noise_run1298_002.root",
     "noise_run1375_001.root",
     "noise_run1377_001.root",
     "noise_run1379_001.root",

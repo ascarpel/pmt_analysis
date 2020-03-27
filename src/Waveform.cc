@@ -202,10 +202,27 @@ TH1D* Waveform::getWaveformHist()
   sprintf(hname, "Run%d-Subrun%d-Event%d-Board%d-Channel%d_hist", m_run,
                                          m_subrun, m_event, m_board, m_channel);
 
-  TH1D *hist = new TH1D(hname, ";Time [ns];ADC", m_nsamples,
+  TH1D *hist = new TH1D(hname, ";Time (ns);ADC", m_nsamples,
                                                0, m_nsamples*m_sampling_period);
 
   for(int t=0; t<m_nsamples; t++){ hist->Fill( t*m_sampling_period, m_waveform.at(t) ); }
+
+  return hist;
+};
+
+//------------------------------------------------------------------------------
+
+TH1D* Waveform::getRawWaveformHist()
+{
+  char hname[100];
+  sprintf(hname, "Run%d-Subrun%d-Event%d-Board%d-Channel%d_raw_hist", m_run,
+                                         m_subrun, m_event, m_board, m_channel);
+
+  TH1D *hist = new TH1D(hname, ";Time (ns);ADC", m_nsamples,
+                                               0, m_nsamples*m_sampling_period);
+
+  for(int t=0; t<m_nsamples; t++){ hist->Fill( t*m_sampling_period,
+                                                       m_raw_waveform.at(t) ); }
 
   return hist;
 };

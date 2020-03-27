@@ -60,7 +60,7 @@ float filter( float x, float param=4 )
 void loss_of_power()
 {
   // init constants
-  const int m_samples = 257;
+  const int m_samples = 1001;
   const float m_sampling_time = 0.1; // in sec
   const float m_sampling_freq = 1./m_sampling_time; //in Hertz
   const float m_freq_res = m_sampling_freq/m_samples; // in Hertz
