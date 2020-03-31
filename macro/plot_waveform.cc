@@ -30,8 +30,10 @@ void plot_waveform(
   //****************************************************************************
   // General definitions ( ..import from DB )
 
-  int run=0.0; int subrun=0.0;
-  utils::get_rundata( filename, run, subrun );
+  RUN my_run(filename);
+  int run=my_run.getRun();
+  int subrun=my_run.getSubrun();
+  
   int nboards=12;
   int nchannels=16;
 
