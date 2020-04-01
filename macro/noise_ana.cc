@@ -23,7 +23,7 @@
 
 using namespace std;
 
-void noise_ana( string filename="../data/noise/run1377_001.root" )
+void noise_ana( string filename="../data/noise/run1336_001.root" )
 {
 
   // CHANGE THE FILENAME BELOW IF WANT TO USE ONE OTHER FILE FOR YOUR ANALYSIS
@@ -47,22 +47,34 @@ void noise_ana( string filename="../data/noise/run1377_001.root" )
   tchain->SetBranchAddress("fWvfmsVec", &data);
 
 
-  TH1D *h_rms_before[nboards][nchannels];
-  TH1D *h_rms_after[nboards][nchannels];
+  //****************************************************************************
+  // Now we create and initialize an histogram per each board and channel
+  // This is an example, you can create more histograms using this model
+
+  TH1D *h_pmt_rms[nboards][nchannels];
+  TH1D *h_pmt_baseline[nboards][nchannels];
 
   for(int board=0; board<nboards; board++)
   {
     for(int channel=0; channel<nchannels; channel++)
     {
+      //DEFINE HERE THE HISTOGRAMS. EACH HISTOGRAM SHOULD HAVE A DIFFERENT NAME
+      //TO AVOID CONFUSION WHEN YOU SAVE THEM TO FILE.
       char hname[100];
-      sprintf(hname, "board%d_channel%d_rms_before", board, channel);
-      h_rms_before[board][channel]= new TH1D(hname, hname, 40, -20, 20);
+      sprintf(hname, "hnoise_run%d_00%d_board%d_channel%d_rms",
+                                                   run, subrun, board, channel);
+      h_pmt_rms[board][channel]= new TH1D(hname, hname, 40, -20, 20);
 
-      sprintf(hname, "board%d_channel%d_rms_after", board, channel);
-      h_rms_after[board][channel]= new TH1D(hname, hname, 40, -20, 20);
+      sprintf(hname, "hnoise_run%d_00%d_board%d_channel%d_baseline",
+                                                   run, subrun, board, channel);
+      h_pmt_baseline[board][channel]= new TH1D(hname, hname, 40, 0, -1);
+      h_pmt_baseline[board][channel]->SetBuffer(1);
     }
   }
 
+  //****************************************************************************
+  // Now it is time to loop over the events
+  //
 
   for(int e=0; e<tchain->GetEntries(); e++)
   {
@@ -76,21 +88,25 @@ void noise_ana( string filename="../data/noise/run1377_001.root" )
       for(int channel=0; channel<nchannels; channel++)
       {
 
+        // Create the WAVEFORM OBJECT
         Waveform *waveform = new Waveform(run, subrun ,e, board, channel);
 
+        // ONCE THE DATA ARE LOADED IN THE WAVEFORM OBJECT, BASELINE IS
+        // AUTOMATICALLY SUBSTRACTED. YOU CAN USE THE FUNCTION "getWaveform()"
+        // TO EXTRACT THE WAVEFORM VECTOR AFTER BASELINE SUBTRACTION OR
+        // "getRawWaveform()" BEFORE BASELINE SUBTRACTION.
         waveform->loadData((*data).at(channel+nchannels*board));
 
         if(!waveform->isValidWaveform()){ continue; }
+
+        // Loop over the entries of the waveform after the baseline subtraction
+        // and fill the entries of the histogram h_pmt_rms
         for( float entry : waveform->getWaveform() )
         {
-          h_rms_before[board][channel]->Fill( entry );
+          h_pmt_rms[board][channel]->Fill( entry );
         }
 
-        waveform->filterNoise(200, false, 100);
-        for( float entry : waveform->getWaveform() )
-        {
-          h_rms_after[board][channel]->Fill( entry );
-        }
+        h_pmt_baseline[board][channel]->Fill( waveform->getBaselineMean() );
 
       } // channel
     } // boards
@@ -105,37 +121,25 @@ void noise_ana( string filename="../data/noise/run1377_001.root" )
   char ofilename[100]; sprintf(ofilename, "noise_run%d_%d.root", run, subrun);
   TFile ofile(ofilename, "RECREATE"); ofile.cd();
 
-  TGraph *g_rms_before = new TGraph( nboards*nchannels );
-  g_rms_before->SetTitle("RMS Before filter");
-  g_rms_before->SetName("RMS_Before_filter");
-
-  TGraph *g_rms_after = new TGraph( nboards*nchannels );
-  g_rms_after->SetTitle("RMS Before after");
-  g_rms_after->SetName("RMS_Before_after");
+  TGraph *g_rms = new TGraph( nboards*nchannels );
+  char gname[100]; sprintf(gname, "g_rms_run%d_subrun%d", run, subrun);
+  g_rms->SetTitle(gname); g_rms->SetName(gname);
 
   for(int board=0; board<nboards; board++)
   {
     for(int channel=0; channel<nchannels; channel++)
     {
-      h_rms_before[board][channel]->Write();
-      h_rms_after[board][channel]->Write();
+      //Write the histogram to the output TFILE
+      h_pmt_rms[board][channel]->Write();
 
-      double rms_before = h_rms_before[board][channel]->GetRMS();
-      double rms_after = h_rms_after[board][channel]->GetRMS();
-
-      int number=channel+board*nchannels;
-      g_rms_before->SetPoint( number, (double)number, rms_before);
-      g_rms_after->SetPoint( number, (double)number, rms_after);
+      g_rms->SetPoint(channel+nchannels*board, channel+nchannels*board,
+                                           h_pmt_rms[board][channel]->GetRMS());
+      h_pmt_rms[board][channel]->Write();
+      h_pmt_baseline[board][channel]->Write();
     }
   }
 
   ofile.Close();
-
-  TCanvas *g = new TCanvas("g", "g", 500, 400);
-  TMultiGraph *mgr = new TMultiGraph();
-  mgr->Add(g_rms_before); mgr->Add(g_rms_after);
-
-  mgr->Draw("APL");
 
   cout << "All done" << endl;
 

@@ -6,7 +6,7 @@
 ################################################################################
 
 # Setup manually the EIGEN_INSTALL variable which is the most opportune for you
-export EIGEN_INSTALL="/usr/local/include/eigen3"
+export EIGEN_INSTALL=""
 
 # This part of the code is effective only on a fnal.gov domain
 if [ "${HOSTNAME#*.}" == "fnal.gov" ]; then
