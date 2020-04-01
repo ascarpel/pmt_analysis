@@ -1,8 +1,9 @@
 #!/bin/bash
 
 ################################################################################
-#
-#
+# Prepare the environment for pmt_analysis. It uses UPS producs on gpvm machines
+# It requres a local installtion of ROOT, Eigen and CMake otherwise
+# mailto:ascarpell@bnl.gov
 ################################################################################
 
 # Setup manually the EIGEN_INSTALL variable which is the most opportune for you
