@@ -55,6 +55,8 @@ class Waveform
       double getBaselineMean(){return baseline_mean;};
       double getBaselineWidth(){return baseline_width;}
       Complex_t doFFT(Waveform_t m_time_domain);
+      Waveform_t doIFFT(Waveform::Complex_t m_frequency_domain);
+      void filterNoise(int window_size, bool reverse,float threshold);
 
       // Indentify and characterize pulses
       bool hasSignal(double n_sigma);

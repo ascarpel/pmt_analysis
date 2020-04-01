@@ -6,11 +6,13 @@
 
 #include "Waveform.h"
 
-//------------------------------------------------------------------------------
+
 
 Waveform::Waveform(){};
 
+
 //------------------------------------------------------------------------------
+
 
 Waveform::Waveform(int run, int subrun, int event, int board, int channel)
   : m_run(run)
@@ -20,7 +22,9 @@ Waveform::Waveform(int run, int subrun, int event, int board, int channel)
   , m_channel(channel)
 { };
 
+
 //------------------------------------------------------------------------------
+
 
 Waveform::Waveform( int run, int subrun, int event ,int board, int channel,
                                                       Rawdigits_t raw_waveform )
@@ -29,11 +33,15 @@ Waveform::Waveform( int run, int subrun, int event ,int board, int channel,
   this->loadData(raw_waveform);
 };
 
+
 //------------------------------------------------------------------------------
+
 
 Waveform::~Waveform(){};
 
+
 //------------------------------------------------------------------------------
+
 
 void Waveform::loadData( Rawdigits_t raw_waveform )
 {
@@ -43,7 +51,9 @@ void Waveform::loadData( Rawdigits_t raw_waveform )
   removeBaseline();
 };
 
+
 //------------------------------------------------------------------------------
+
 
 void Waveform::removeBaseline()
 {
@@ -69,7 +79,9 @@ void Waveform::removeBaseline()
 
 };
 
+
 //------------------------------------------------------------------------------
+
 
 bool Waveform::find(int run, int subrun, int event, int board, int channel )
 {
@@ -77,7 +89,9 @@ bool Waveform::find(int run, int subrun, int event, int board, int channel )
                                        && board==m_board && channel==m_channel);
 };
 
+
 //------------------------------------------------------------------------------
+
 
 bool Waveform::hasSignal(double n_sigma)
 {
@@ -99,7 +113,9 @@ bool Waveform::hasSignal(double n_sigma)
   return has_signal;
 };
 
+
 //------------------------------------------------------------------------------
+
 
 bool Waveform::hasPulse( double n_sigma )
 {
@@ -157,7 +173,9 @@ bool Waveform::hasPulse( double n_sigma )
   return has_pulse;
 };
 
+
 //------------------------------------------------------------------------------
+
 
 bool Waveform::isValidWaveform()
 {
@@ -173,15 +191,9 @@ bool Waveform::isValidWaveform()
   return isValid;
 }
 
-//------------------------------------------------------------------------------
-
-  // Use fit to find the pulse instead
-
-  // Better way to find the pulse
-
-  // Noise filter ?
 
 //------------------------------------------------------------------------------
+
 
 Waveform::Complex_t Waveform::doFFT(Waveform::Waveform_t m_time_domain)
 {
@@ -190,6 +202,78 @@ Waveform::Complex_t Waveform::doFFT(Waveform::Waveform_t m_time_domain)
     fft.fwd(m_frequency_domain, m_time_domain);
     return m_frequency_domain;
 }
+
+
+Waveform::Waveform_t Waveform::doIFFT(Waveform::Complex_t m_frequency_domain)
+{
+    Eigen::FFT<double> fft;
+    Waveform::Waveform_t  m_time_domain;
+    fft.inv(m_time_domain, m_frequency_domain);
+    return m_time_domain;
+}
+
+//------------------------------------------------------------------------------
+
+
+void Waveform::filterNoise(int window_size=200, bool reverse=false,
+                                                            float threshold=100)
+{
+  //Noise filter algorithm. It will produce a new waveform object after noise
+  //mitigation. Noise patterns to be mitigated are selected on a given window at
+  //the beginning or at end of the waveform.
+  //Arguments:
+  //  window_size: set the window to produce the nosie model
+  //  reverse: if true, the noise window is calculated at the end of the waveform
+
+  // Select a noise window sufficiently large to be representative of the noise
+  // patters of the original waveform
+  Waveform::Waveform_t tmp_noise(window_size);
+  copy(m_waveform.begin(), m_waveform.begin()+window_size, tmp_noise.begin());
+
+  if( reverse ){
+    copy(m_waveform.end()-window_size, m_waveform.end(), tmp_noise.begin());
+  }
+
+  // Get the noise spectra and get rid of some of the most nasty frequencies
+  // which survive above a threshold
+  vector<complex<double>> spec = doFFT(tmp_noise);
+  vector<complex<double>> tmp_spec(spec.size());
+  for(int i=0; i<int(spec.size()); i++ )
+  {
+    double pwr = sqrt( pow(spec[i].real(), 2) + pow(spec[i].imag(), 2) );
+    if( pwr  > threshold ){
+      tmp_spec[i] = spec[i];
+    }
+  }
+
+  // Produce the filtered waveform in time domain
+  Waveform::Waveform_t tmp_filter = doIFFT(tmp_spec);
+
+  // Now we mirror the tmp_filter waveform to match the same length of the
+  // original waveform. The mirroring is reasonable in this case since the
+  // base noise we would like to remove is periodic.
+  tmp_filter.resize(m_nsamples);
+
+  int groups = ceil(float(m_nsamples)/float(window_size));
+  for(int group=1; group<groups; group++ )
+  {
+    for( int i=0; i<window_size; i++ )
+    {
+      if( group*window_size+i == m_nsamples ){ break; }
+      tmp_filter[group*window_size+i] = tmp_filter[i];
+    }
+  }
+
+  // Finally subtract the noise filter from the original waveform
+  for(int t=0; t<m_nsamples; t++)
+  {
+    m_waveform[t] -= tmp_filter[t];
+  }
+}
+
+
+//------------------------------------------------------------------------------
+
 
 TH1D* Waveform::getPowerSpectrum()
 {
