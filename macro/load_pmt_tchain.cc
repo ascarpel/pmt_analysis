@@ -84,7 +84,6 @@ void load_pmt_tchain()
   //
 
   int nentries = tchain->GetEntries();
-  nentries =1;
   for(int e=0; e<nentries; e++)
   {
     cout << "Processing event: " << e << endl;
@@ -114,10 +113,10 @@ void load_pmt_tchain()
         // THIS PART IS SOMETHING THAT YOU PROBABLY HAVE TO MODIFY:
         // WHAT THE CODE DOES HERE IS CHECKING IF THE WAFEFORM SATISFY MY CRITERIA
         // TO FIND A PULSE. IF YES, THIS WAVEFORM IS SAVED INSIDE THE PMT OBJECT
-        if(waveform->hasPulse(1.0))
-        {
-          pmts[board][channel]->loadWaveform(waveform);
-        }
+        //if(waveform->hasPulse(1.0))
+        //{
+         pmts[board][channel]->loadWaveform(waveform);
+        //}
 
       } // end channel
     } // end boards
