@@ -119,7 +119,7 @@ void RUN::getRundata(string filename, int & run, int & subrun)
   // In some files the subrun might not be in the middle of the word, but at the
   // end, before the extension .root
   string tmp_str = filename.substr(suffix[1]+1, suffix[2]-suffix[1]);
-  if( tmp_str.find(".root") != tmp_str.size() )
+  if( tmp_str.find(".root") < tmp_str.size() )
   {
     int pos = tmp_str.find(".root");
     subrun = std::stoi(filename.substr(suffix[1]+1, tmp_str.size()-pos-2));
