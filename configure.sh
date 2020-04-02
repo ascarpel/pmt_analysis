@@ -7,14 +7,14 @@
 ################################################################################
 
 # Setup manually the EIGEN_INSTALL variable which is the most opportune for you
-export EIGEN_INSTALL=""
+export EIGEN_INSTALL="/usr/include/eigen3/"
 
 # This part of the code is effective only on a fnal.gov domain
 if [ "${HOSTNAME#*.}" == "fnal.gov" ]; then
 
   # Setup the general icaruscode ups packages
   source /cvmfs/fermilab.opensciencegrid.org/products/larsoft/setup
-  source /cvmfs/icarus.opensciencegrid.org/products/icarus/setup_icarus.sh
+  #source /cvmfs/icarus.opensciencegrid.org/products/icarus/setup_icarus.sh
 
   remove_quotes()
   {
@@ -31,7 +31,7 @@ if [ "${HOSTNAME#*.}" == "fnal.gov" ]; then
   out=( "$(ups list -aK+ eigen | tail -1)" )
   line=( $out )
   version=$( remove_quotes ${line[1]} )
-  setup eigen -v ${version} -q ${qualifier}
+  setup eigen -v ${version}
 
   # Now setup the latest version of ROOT using ups producs
   out=( "$(ups list -aK+ root | tail -1)" )
