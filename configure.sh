@@ -10,7 +10,9 @@
 export EIGEN_INSTALL="/usr/include/eigen3/"
 
 # This part of the code is effective only on a fnal.gov domain
-if [ "${HOSTNAME#*.}" == "fnal.gov" ]; then
+if [ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]; then
+
+  echo "Setup using /cvmfs/ at 'S{HOSTNAME#*.}'"
 
   # Setup the general icaruscode ups packages
   source /cvmfs/fermilab.opensciencegrid.org/products/larsoft/setup
