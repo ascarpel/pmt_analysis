@@ -21,18 +21,18 @@ using namespace std;
 
 
 void plot_waveform(
-  string filename="../data/noise/run1398_001.root",
-  int event=0,
-  int board = 0,
-  int channel = 0)
+  string filename="/gpfs01/lbne/users/pmt/2020JuneData_decoded/run1717/data_dl1_run1717_99_20200605T190020_decoded.root",
+  int event=8,
+  int board = 10,
+  int channel = 7)
 {
 
   //****************************************************************************
   // General definitions ( ..import from DB )
 
-  RUN my_run(filename);
-  int run=my_run.getRun();
-  int subrun=my_run.getSubrun();
+  //RUN my_run(filename);
+  int run=1717; //my_run.getRun();
+  int subrun=99; //my_run.getSubrun();
   
   int nboards=12;
   int nchannels=16;
