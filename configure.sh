@@ -51,13 +51,13 @@ if [ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]; then
 fi
 
 # Check if the EIGEN_INSTALL variable is configured
-if [ $EIGEN_INSTALL == "" ]; then
+if [ "$EIGEN_INSTALL" == "" ]; then
   echo "DON'T FORGET TO SET THE EIGEN_INSTALL VARIABLE!"
   return
 fi
 
 # Check if root is configured
-if [ $ROOTSYS == "" ]; then
+if [ "$ROOTSYS" == "" ]; then
   echo "DON'T FORGET TO SET A ROOT VERSION!"
   return
 fi
