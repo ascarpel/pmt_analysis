@@ -15,4 +15,4 @@ Fit the direct light histograms (NB if you want to fit all 360 pmts it takes ~2h
 fitDirectLight -i ../data/calo/histogramDirectLight.root -o fitDirectLight.root -d fitDirectLight.csv
 ```
 ## Fit indirect light ##
-to be do
+to be done
