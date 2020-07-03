@@ -7,6 +7,8 @@ ROOT_GENERATE_DICTIONARY(  CustomClassesDict
                             ../inc/Run.h
                             ../inc/ Pmt.h
                            ../inc/Waveform.h
+                           ../inc/ChargeFit.h
+                           ../inc/HighChargeFit.h
 	                         LINKDEF
                            ../inc/CustomClasses_LinkDef.h
                          )
@@ -26,6 +28,8 @@ add_library(  CustomClasses
               Run.cc
               Pmt.cc
               Waveform.cc
+              ChargeFit.cc
+              HighChargeFit.cc
             )
 
 #Link to ROOT.

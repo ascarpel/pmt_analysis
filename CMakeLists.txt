@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 
 #ROOT libraries
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
-find_package(ROOT REQUIRED COMPONENTS RIO)
+find_package(ROOT REQUIRED COMPONENTS RIO  MINUIT)
 include(${ROOT_USE_FILE})
 include_directories(${ROOT_INCLUDE_DIRS})
 link_directories(${ROOT_LIBRARY_DIR})
@@ -25,9 +25,23 @@ add_subdirectory(src ${PROJECT_SOURCE_DIR}/build/sourcebuild)
 file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB headers ${PROJECT_SOURCE_DIR}/inc/*.h)
 
-#add here the name of your executable
-add_executable(waveform ${PROJECT_SOURCE_DIR}/waveform/waveform.cc ${sources} ${headers})
-target_link_libraries(waveform ${ROOT_LIBRARIES} Vector CustomClasses)
+# COMPIRE CUSTOM SOURCES
+#IN FOLDER WAVEFORM ############################################################
 
+
+#IN FOLDER GAIN ################################################################
+add_executable(makeHistDirect ${PROJECT_SOURCE_DIR}/gain/makeHistDirect.cc ${sources} ${headers})
+target_link_libraries(makeHistDirect ${ROOT_LIBRARIES} Vector CustomClasses)
+
+add_executable(makeHistIndirect ${PROJECT_SOURCE_DIR}/gain/makeHistIndirect.cc ${sources} ${headers})
+target_link_libraries(makeHistIndirect ${ROOT_LIBRARIES} Vector CustomClasses)
+
+add_executable(fitDirectLight ${PROJECT_SOURCE_DIR}/gain/fitDirectLight.cc ${sources} ${headers})
+target_link_libraries(fitDirectLight ${ROOT_LIBRARIES} Vector CustomClasses)
+
+#IN FOLDER DARKRATE ############################################################
+
+
+# Send some variables to path
 set(ENV{PATH} "${PROJECT_SOURCE_DIR}/build/$ENV{PATH}")
 set(ENV{LD_LIBRARY_PATH} "${PROJECT_SOURCE_DIR}/build/$ENV{LD_LIBRARY_PATH}")

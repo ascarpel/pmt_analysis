@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "Geometry.h"
-#include "Waveform.h"
 #include "TH1D.h"
 
 using namespace std;
@@ -24,39 +22,40 @@ class PMT
   public:
 
     PMT();
-    PMT(int run, int board, int channel );
-    PMT(int run, int pmt_number );
+    PMT( int channel );
+    PMT( int channel, double hv);
+    PMT( int channel, std::string name );
     ~PMT();
 
-    // Loaders
-    void loadWaveform( Waveform *waveform );
+    void loadCharge( double charge ){ m_charge_array.push_back(charge); };
+    void loadAmplitude( double amp ){ m_amplitude_array.push_back(amp); }
 
-    // Getters
-    int getRun(){ return m_run; };
-    int getBoard(){ return m_board; };
-    int getChannel(){ return m_channel; }
-    int getPmtNumber(){ return m_pmt_number; }
-    void getBoardAndChannel( int pmt_number, int & board, int & channel);
-
-    // vector<double> getAmplitudes(){ return m_amplitude_array; };
+    //getters
+    double getHV(){ return m_hv; }\
+    vector<double> getArrayCharge(){ return m_charge_array; }
+    TH1D* getHistCharge(){ return h_charge; }
 
     // Helpers
+    void findExtremes( std::vector<double> vec, double &min, double &max );
+    void initChargeHist( int nbins, double min, double max );
     void clean();
-    void initHist();
-    void writeHist();
-    bool isIlluminated( int optical_channel );
+
 
   private:
 
-    int m_run;
-    int m_board;
+    std::string pmtname="hist";
+
     int m_channel;
-    int m_pmt_number;
+    double m_hv;
 
-    // vector<double> m_amplitude_array;
+    TH1D *h_charge;
 
-    TH1D *h_amplitude;
-    TH1D *h_amplitude_low;
+    vector<double> m_charge_array;
+    vector<double> m_amplitude_array;
+
+    double m_charge_max;
+    double m_charge_min;
+    int m_nbins;
 
 };
 
