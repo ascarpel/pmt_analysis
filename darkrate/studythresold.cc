@@ -3,8 +3,10 @@
 // thresold in amplitiude
 //
 // usage root -l studythresold.cc
-// make sure to replace the file with the output of makePulseHist.cc and
-// the window with the effective waveform window ( if you apply a cut on it )
+// make sure to replace (if necessary):
+// 1) the file with the output of makePulseHist.cc
+// 2) the window with the effective waveform window ( if you apply a cut on it )
+// 3) the list of active pmts
 //
 // ascarpell@bnl.gov
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,9 +52,7 @@ void studythresold()
     }
 
     graphs.push_back(graph);
-
-
-
+    
   }
 
 
