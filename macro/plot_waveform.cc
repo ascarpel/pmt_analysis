@@ -27,13 +27,9 @@ void plot_waveform(
   int channel = 7)
 {
 
-  //****************************************************************************
-  // General definitions ( ..import from DB )
+  int run= 1717;
+  int subrun=99;
 
-  //RUN my_run(filename);
-  int run=1717; //my_run.getRun();
-  int subrun=99; //my_run.getSubrun();
-  
   int nboards=12;
   int nchannels=16;
 
@@ -63,7 +59,7 @@ void plot_waveform(
   const int n_boards = (*data).size()/n_channels;
 
   // Create the PMT object
-  Waveform *waveform = new Waveform(run, subrun ,event, board, channel);
+  Waveform *waveform = new Waveform();
   waveform->loadData((*data).at(channel+n_channels*board));
 
   char cname[100];
@@ -81,8 +77,8 @@ void plot_waveform(
   hist->GetYaxis()->SetRangeUser(-20, 20);
   hist->Draw("hist");
 
-  double baselineMean  = waveform->getBaselineMean();
-  double baselineWidth = waveform->getBaselineWidth();
+  double baselineMean  = abs(waveform->getBaselineMean());
+  double baselineWidth = abs(waveform->getBaselineWidth());
   cout << baselineMean << " " << baselineWidth << endl;
 
   // Raw waveform
