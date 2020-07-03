@@ -1,0 +1,3 @@
+/gpfs01/lbne/users/pmt/calo/west_m50.root
+/gpfs01/lbne/users/pmt/calo/west_m0.root
+/gpfs01/lbne/users/pmt/calo/west_p30.root
