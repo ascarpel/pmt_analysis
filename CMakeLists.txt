@@ -40,7 +40,8 @@ add_executable(fitDirectLight ${PROJECT_SOURCE_DIR}/gain/fitDirectLight.cc ${sou
 target_link_libraries(fitDirectLight ${ROOT_LIBRARIES} Vector CustomClasses)
 
 #IN FOLDER DARKRATE ############################################################
-
+add_executable(makePulseHist ${PROJECT_SOURCE_DIR}/darkrate/makePulseHist.cc ${sources} ${headers})
+target_link_libraries(makePulseHist ${ROOT_LIBRARIES} Vector)
 
 # Send some variables to path
 set(ENV{PATH} "${PROJECT_SOURCE_DIR}/build/$ENV{PATH}")
