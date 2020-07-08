@@ -37,8 +37,8 @@ For the processing of large pmt datasets  it is necessary to compile pmt_analysi
 
 Compiling requires a local installation of CMake or the correct UPS product sourced by `configure.sh`. Then in the main project directory do:
 ``` bash
-mkdir builddir/
-cd builddir
+mkdir build/
+cd build
 cmake ../
 cmake --build .
 cd ../
