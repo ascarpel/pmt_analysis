@@ -99,7 +99,7 @@ class Waveform
       // Pulse
       Pulse getLaserPulse();
       Pulse getIntegral();
-      std::vector<Pulse> findPulses();
+      std::vector<Pulse> findPulses( double startTh, double endTh );
       void resetPulse(Pulse &pulse);
 
 

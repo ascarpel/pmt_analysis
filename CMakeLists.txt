@@ -27,7 +27,8 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/inc/*.h)
 
 # COMPIRE CUSTOM SOURCES
 #IN FOLDER WAVEFORM ############################################################
-
+add_executable(waveformAverage ${PROJECT_SOURCE_DIR}/waveform/waveformAverage.cc ${sources} ${headers})
+target_link_libraries(waveformAverage ${ROOT_LIBRARIES} Vector)
 
 #IN FOLDER GAIN ################################################################
 add_executable(makeHistDirect ${PROJECT_SOURCE_DIR}/gain/makeHistDirect.cc ${sources} ${headers})

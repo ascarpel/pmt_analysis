@@ -112,13 +112,13 @@ void Waveform::resetPulse(Waveform::Pulse &pulse)
 
 
 
-std::vector<Waveform::Pulse> Waveform::findPulses()
+std::vector<Waveform::Pulse> Waveform::findPulses( double startTh, double endTh )
 {
   // Simple thresold pulse finder
   std::vector<Waveform::Pulse> pulse_v;
 
-  auto start_threshold = m_start_adc_thres;
-  auto end_threshold   = m_end_adc_thres;
+  auto start_threshold = startTh;
+  auto end_threshold   = endTh;
 
   bool fire = false;
   double counter = 0;
@@ -188,7 +188,7 @@ for( int i = m_startbin; i<m_startbin+m_nbins; i++ ) {
 }
 
 std::vector<Waveform::Pulse> pulses;
-for( auto & pulse : this->findPulses()) {
+for( auto & pulse : this->findPulses( m_start_adc_thres, m_end_adc_thres )) {
   if( (pulse.time_peak > m_trigger_time[0]) && (pulse.time_peak < m_trigger_time[1]) ) {
     pulses.push_back( pulse );
   }

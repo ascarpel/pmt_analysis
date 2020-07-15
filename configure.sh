@@ -7,10 +7,10 @@
 ################################################################################
 
 # Setup manually the EIGEN_INSTALL variable which is the most opportune for you
-export EIGEN_INSTALL="/usr/include/eigen3/"
+export EIGEN_INSTALL="/usr/local/include/eigen3"
 
 # This part of the code is effective only on a fnal.gov domain
-if [ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]; then
+if [[ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]]; then
 
   echo "Setup using /cvmfs/ at 'S{HOSTNAME#*.}'"
 
@@ -51,13 +51,13 @@ if [ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]; then
 fi
 
 # Check if the EIGEN_INSTALL variable is configured
-if [ "$EIGEN_INSTALL" == "" ]; then
+if [[ "$EIGEN_INSTALL" == "" ]]; then
   echo "DON'T FORGET TO SET THE EIGEN_INSTALL VARIABLE!"
   return
 fi
 
 # Check if root is configured
-if [ "$ROOTSYS" == "" ]; then
+if [[ "$ROOTSYS" == "" ]]; then
   echo "DON'T FORGET TO SET A ROOT VERSION!"
   return
 fi
