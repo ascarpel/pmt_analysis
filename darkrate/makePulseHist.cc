@@ -272,6 +272,7 @@ int main( int argc, char **argv ){
 
     // Group the pulses on each PMT
     std::map<int, std::vector<Pulse>> m_pmt_pulse;
+    std::vector<Pulse> m_pulses;
     for( size_t pmtindex=0; pmtindex<m_pmt_array->size(); pmtindex++ ){
 
       int pmtid = (*m_pmt_array).at(pmtindex);
@@ -283,11 +284,13 @@ int main( int argc, char **argv ){
         pulse.integral = (*m_pulse_integral).at(pmtindex);
         pulse.pmt = pmtid;
         m_pmt_pulse[pmtid].push_back( pulse );
+        m_pulses.push_back( pulse );
       }
 
     }
 
     // If applicable skip bad events -- replace this line using the appropriate selection function if you want to use the coincidence selection
+    // m_pmt_pulse is a map associating pulses and pmts; m_pulses is just an array with all the pulses
     if(  !passCuts( m_pmt_pulse ) && m_apply_cuts != 0 ){ continue; }
 
 
