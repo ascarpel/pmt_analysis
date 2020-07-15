@@ -28,6 +28,7 @@ struct Pulse{
   double peaktime;
   double amplitude;
   double integral;
+  int pmt;
 };
 
 
@@ -154,6 +155,64 @@ bool passCuts( std::map<int, std::vector<Pulse>> map ){
 
 }
 
+//------------------------------------------------------------------------------
+
+
+bool hasValue( std::vector<size_t> array, size_t value ) {
+
+  auto checkit = std::find( array.begin(), array.end(), value );
+
+  bool found = checkit != array.end();
+
+  return found;
+
+};
+
+// selection function for coincidence. I would recommend to use window 10 (bins in this case so 20 ns) and thresold 100, but you can select differnet values
+bool hasCoincidence(double window, double threshold,  std::vector<Pulse> m_pulses ) {
+
+    // This index hold the entries of m_pulse which are found in coincidence
+    std::vector<size_t>  m_indx;
+
+    for( size_t i=0; i<m_pulses.size(); i++ ) {
+
+      for( size_t j=i+1; j<m_pulses.size(); j++ ) {
+
+        //Do not let small noise peak spoil the selection
+        if( m_pulses[i].amplitude < threshold || m_pulses[j].amplitude < threshold ){ continue; }
+
+
+        // Check if there is a match inside the window
+        if( abs(m_pulses[i].peaktime - m_pulses[j].peaktime) < window ){
+
+          // Check if the index has been matched already, if yet continue
+          if( !hasValue(m_indx, i) && !hasValue(m_indx, j) ) {
+
+            m_indx.push_back(i);
+            m_indx.push_back(j);
+
+          }
+        }
+
+      } // end j
+    } //end i
+
+
+    // Super dumb selection: waveforms are skipped if there are more than two PMTs in coincidence,
+    // you can put in your preferred logic:
+    // m_indx holds all the index of the pulse array found in coincidence.
+    // the struct Pulse also has pmt information, you can access it in a loop like this and then do further manipulations
+    // Remember that even after the thresold cut there might be more than one pulse associated to the same pmt
+    // for( int & idx : m_indx ){
+    //  int pmtid = m_pulses[idx].pmt;
+    // }
+
+    bool isCoincidence = false;
+    if( m_indx.size() > 0 ){ isCoincidence = true; }
+
+    return isCoincidence;
+
+};
 
 //------------------------------------------------------------------------------
 
@@ -222,13 +281,15 @@ int main( int argc, char **argv ){
         pulse.peaktime = (*m_pulse_time).at(pmtindex);
         pulse.amplitude = (*m_pulse_amplitude).at(pmtindex);
         pulse.integral = (*m_pulse_integral).at(pmtindex);
+        pulse.pmt = pmtid;
         m_pmt_pulse[pmtid].push_back( pulse );
       }
 
     }
 
-    // If applicable skip bad events
+    // If applicable skip bad events -- replace this line using the appropriate selection function if you want to use the coincidence selection
     if(  !passCuts( m_pmt_pulse ) && m_apply_cuts != 0 ){ continue; }
+
 
     // Save to files
     for( auto & pulses : m_pmt_pulse ){
