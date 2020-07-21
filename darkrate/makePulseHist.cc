@@ -272,6 +272,7 @@ int main( int argc, char **argv ){
 
     // Group the pulses on each PMT
     std::map<int, std::vector<Pulse>> m_pmt_pulse;
+    std::vector<Pulse> m_pulses;
     for( size_t pmtindex=0; pmtindex<m_pmt_array->size(); pmtindex++ ){
 
       int pmtid = (*m_pmt_array).at(pmtindex);
@@ -283,6 +284,7 @@ int main( int argc, char **argv ){
         pulse.integral = (*m_pulse_integral).at(pmtindex);
         pulse.pmt = pmtid;
         m_pmt_pulse[pmtid].push_back( pulse );
+        m_pulses.push_back( pulse );
       }
 
     }

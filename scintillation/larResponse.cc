@@ -20,7 +20,7 @@ class Scintillation {
     Scintillation();
     ~Scintillation();
 
-    void fitResponse( TProfile *prof );
+    int fitResponse( TProfile *prof );
 
   private:
 
@@ -133,7 +133,7 @@ void Scintillation::larResponseFcn(int &npar, double * deriv, double &f, double 
 
 
 
-void Scintillation::fitResponse( TProfile *prof ) {
+int Scintillation::fitResponse( TProfile *prof ) {
 
 
   // Pass the argument hist to the class member;
@@ -180,34 +180,38 @@ void Scintillation::fitResponse( TProfile *prof ) {
  std::cout << fitstatus << " " << m_chi2 << " " <<  m_ndf-m_pars  << std::endl;
  */
 
+ int nbins = m_profile->GetNbinsX();
+ double tlow = m_profile->GetBinLowEdge(0);
+ double thigh = m_profile->GetBinLowEdge(nbins) + m_profile->GetBinWidth(nbins);
+
 
  double vthispar[9]  = { 0.0, 5.0, 6.0, 50, 1400, 3.34, 3.4, 23 };
- TF1 *fitf = new TF1("allComponents", Scintillation::allComponentFcn, -200, 2400, 8);
+ TF1 *fitf = new TF1("allComponents", Scintillation::allComponentFcn, tlow, thigh, 8);
  fitf->SetParameters( vthispar );
  fitf->SetLineColor(kOrange);
  fitf->SetLineStyle(2);
 
 
- TCanvas *c = new TCanvas("c", "c", 600, 500);
+ //TCanvas *c = new TCanvas("c", "c", 600, 500);
 
- m_profile->Draw("E1 same");
+ //m_profile->Draw("E1 same");
 
 
  fitf->SetParLimits( 0, -5, 5 );
- fitf->SetParLimits( 1, 3.0, 10.0 );
+ fitf->SetParLimits( 1, 0.3, 6.0 );
  //fitf->SetParLimits( 2, 4.5, 6.5 );
  //fitf->SetParLimits( 3, 550, 700 );
  fitf->FixParameter( 2, 6.0 );
  //fitf->FixParameter( 3, 50 );
- //fitf->FixParameter( 4, 1400 );
+ //fitf->SetParLimits( 4, 1350, 1600 );
  //fitf->FixParameter( 5, 4.0 );
  //fitf->FixParameter( 6, 4.0 );
  //fitf->FixParameter( 6, 28 );
 
 
- int fitstatus = m_profile->Fit("allComponents", "RN", "", -20, 2400);
+ int fitstatus = m_profile->Fit("allComponents", "RNQ", "", -20, 1800);
 
- std::cout << fitstatus << " " << fitf->GetChisquare() / fitf->GetNDF() << std::endl;
+ //std::cout << fitstatus << " " << fitf->GetChisquare() / fitf->GetNDF() << std::endl;
 
  TF1 *fcomp[3];
 
@@ -215,7 +219,7 @@ void Scintillation::fitResponse( TProfile *prof ) {
 
    char fname[100]; sprintf(fname, "component_%d", i );
 
-   fcomp[i] = new TF1(fname, singleComponentFcn, -200, 2400, 4);
+   fcomp[i] = new TF1(fname, singleComponentFcn, tlow, thigh, 4);
 
    fcomp[i]->SetParameter(0, fitf->GetParameter(0) );
    fcomp[i]->SetParameter(1, fitf->GetParameter(1) );
@@ -225,19 +229,23 @@ void Scintillation::fitResponse( TProfile *prof ) {
    fcomp[i]->SetLineColor(i+1);
    fcomp[i]->SetLineStyle(2);
 
-   fcomp[i]->Draw("same");
+   //fcomp[i]->Draw("same");
+
+   m_profile->GetListOfFunctions()->Add( fcomp[i] );
 
  }
 
+ m_profile->GetListOfFunctions()->Add( fitf );
 
 
- fitf->Draw("same");
+ //fitf->Draw("same");
 
- c->SetLogy();
+ //c->SetLogy();
 
  // Define the cumulative repsonse function and the three independed components
  // for drawing the fit
 
+ return fitstatus;
 
 };
 
@@ -267,20 +275,40 @@ void getMetadata( std::string name, int &event, int &daqid, int &idx ) {
 //------------------------------------------------------------------------------
 
 
+void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map ){
 
-void larResponse() {
-
-  TFile *tfile = new TFile("./sample/coincidence_waveforms_run1717.root");
+  std::cout << "MERGE HISTOGRAMS" << std::endl;
 
   TList *list = tfile->GetListOfKeys();
+
+  // Check the first item and extract the boundaries
+  TKey *firstKey = (TKey*)list->First();
+  TH1D *firstHist = (TH1D*)tfile->Get( firstKey->GetName() );
+
+  int nbins = firstHist->GetNbinsX();
+  double width = firstHist->GetBinWidth(nbins);
+  double tlow = firstHist->GetBinLowEdge(0)+width;
+  double thigh = firstHist->GetBinLowEdge(nbins)+width;
+
+  std::vector<int> activeBoards = {10, 11};
+  std::vector<int> activeChannels = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
+
+  for( int board : activeBoards ){
+    for( int channel : activeChannels ){
+
+      int daqid = board*16+channel;
+
+      char pname[20]; sprintf(pname, "prof_daq%d", daqid);
+      TProfile *profile = new TProfile(pname, pname, nbins, tlow, thigh);
+      m_profile_map[daqid] = profile;
+
+    }
+  }
+
+
+  // Now we start iterating on the entries
   TIter iter(list->MakeIterator());
 
-
-
-  TProfile *prof = new TProfile("", "", 1250, -50*2, 1200*2);
-  TH2D *hist = new TH2D("", "", 1250, -50*2, 1200*2, 100, 0.001, 1.5);
-
-  int counts=0;
   while( TObject* obj = iter() ) {
 
 
@@ -291,40 +319,81 @@ void larResponse() {
     int event, daqid, idx;
     getMetadata( histname, event, daqid, idx );
 
-    if( daqid==160 && idx==0 ) {
 
-      counts++;
+    TH1D *tmphist = (TH1D*)tfile->Get( theKey->GetName() );
+    tmphist->Scale(1./tmphist->GetMaximum());
 
-      TH1D *tmphist = (TH1D*)tfile->Get( theKey->GetName() );
-
-      tmphist->Scale(1./tmphist->GetMaximum());
-
-      for( int bin=0; bin<tmphist->GetNbinsX(); bin++ ){
-
+    for( int bin=0; bin<tmphist->GetNbinsX(); bin++ ){
         double value = tmphist->GetBinContent(bin);
-        //if( value < 1.5e-4 ){ value = 1.5e-3; }
-        prof->Fill((bin-50)*2, value);
-        hist->Fill((bin-50)*2, value);
-
+        m_profile_map[daqid]->Fill(bin*width+tlow, value);
       }
-
-    }
 
   }
 
-  cout << counts << endl;
+  return;
 
-  Scintillation myScintillation;
-  myScintillation.fitResponse( prof );
-
-  //hist->Draw("COLZ");
+}
 
 
 
+void larResponse() {
 
 
+  std::string ifilename="./sample/coincidence_waveforms_run1717.root";
+  std::string outfilename="./sample/scintillation_fit_run1717.root";
 
 
+  //Read from file
+  TFile *tfile = new TFile(ifilename.c_str());
 
+
+  // HERE WE MERGE THE HISTOGRAMS ----------------------------------------------
+  // A tprofile is creaded for each daqid. If more pulses are found on one event
+  // on the same tube, they are merged togheter
+
+  std::map<int , TProfile*> m_profile_map;
+  mergeHist( tfile,  m_profile_map );
+
+
+  // HERE WE DO THE FIT --------------------------------------------------------
+  std::cout << "FITTING: " << std::endl;
+
+  TFile *ofile = new TFile(outfilename.c_str(), "RECREATE");
+
+  for( auto & profileIt : m_profile_map ) {
+
+    int daqid = profileIt.first;
+    TProfile *prof = profileIt.second;
+
+    // Just fit profile with the entries
+    if(prof->GetEntries() > 0) {
+
+      std::cout << " >>>> " << daqid << " " << prof->GetName() << std::endl;
+
+      // Here we do the fit
+      Scintillation myScintillation;
+      int fitstatus = myScintillation.fitResponse( prof );
+
+
+      // Here we read the parameters <<< this is a good exit point if you want to save the paramters to file
+      std::cout << "  Status of the fit: " << fitstatus << std::endl;
+
+      TF1 *fitf = prof->GetFunction("allComponents");
+
+
+      std::vector<string> vnames={ "#t_m","#sigma", "#tau_{f}", "#tau_{i}", "#tau_{s}", "#a_{f}",   "#a_{i}",   "#a_{s}"  };
+
+      for( int i=0; i<vnames.size(); i++ ){
+        std::cout << "  " << vnames[i] << " " << fitf->GetParameter(i) << " " << fitf->GetParError(i) << endl;
+      }
+
+      std::cout << "  " << fitf->GetChisquare() << " " <<  fitf->GetNDF() << std::endl;
+      std::cout << "\n";
+
+      prof->Write();
+    }
+  }
+
+  std::cout << "ALL DONE" << std::endl;
 
 }

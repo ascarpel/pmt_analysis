@@ -71,8 +71,8 @@ void findCoincidences(){
   // ROI where the response of the LAr Scintillation should be contained
   // startROI is the part before the 0 ( 0 is set on the peak )
   // endROI is the end after the 0 ( large enough to contain the 1.6 us slow component )
-  int startROI = 50; // in bins
-  int endROI = 1200; // in bin
+  int startROI = 20; // in bins
+  int endROI = 980; // in bin
 
 
   std::string filePattern = "../data/coldTest/run1717/*.root";
@@ -135,8 +135,6 @@ void findCoincidences(){
         // Want to study only events max 3 pulses in the 10 us window
         // this would reduce pileup hopefully
         if( pulses.size() > 0 && pulses.size() < 3) {
-
-
 
           for( auto & pulse : pulses ){
             m_pulses.push_back( pulse );
