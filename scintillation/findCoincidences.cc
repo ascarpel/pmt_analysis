@@ -63,22 +63,22 @@ void findCoincidences(){
   int startevent=0;
   int nevents = -1;
 
-  double window = 10; // Pulse coincidence window
+  double window = 3; // Pulse coincidence window
 
-  double startTh = 500; // ADC
-  double endTh = 10; //ADC
+  double startTh = 300; // ADC
+  double endTh = 200; //ADC
 
   // ROI where the response of the LAr Scintillation should be contained
   // startROI is the part before the 0 ( 0 is set on the peak )
   // endROI is the end after the 0 ( large enough to contain the 1.6 us slow component )
-  int startROI = 20; // in bins
-  int endROI = 980; // in bin
+  int startROI = 250; // in bins
+  int endROI = 1750; // in bin
 
 
-  std::string filePattern = "../data/coldTest/run1717/*.root";
-  std::string outfilename = "./sample/coincidence_waveforms_run1717.root";
-  std::vector<int> activeBoards = {10, 11};
-  std::vector<int> activeChannels = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
+  std::string filePattern = "../data/coldTest/run1882/cold-commissioning-run1882.root";
+  std::string outfilename = "./sample/coincidence_waveforms_run1882.root";
+  std::vector<int> activeBoards = { 1,2,3,4,5,6,7,8,9,10,11 };
+  std::vector<int> activeChannels = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14, 15 };
 
 
   //----------------------------------------------------------------------------
@@ -132,11 +132,12 @@ void findCoincidences(){
         //Check pulses and keep waveforms with only one pulse
         auto pulses = waveAna->findPulses(startTh, endTh);
 
-        // Want to study only events max 3 pulses in the 10 us window
+        // Want to study only events max 1 pulses in the 10 us window
         // this would reduce pileup hopefully
-        if( pulses.size() > 0 && pulses.size() < 3) {
+        if( pulses.size() > 0 && pulses.size() < 2) {
 
           for( auto & pulse : pulses ){
+
             m_pulses.push_back( pulse );
             m_daqid.push_back( daqid );
             m_waves.push_back( waveAna->getWaveform() );
@@ -187,8 +188,8 @@ void findCoincidences(){
          int maxBin = m_pulse.time_peak;
          double maxAmpl = m_pulse.amplitude;
 
-         // That is the saturation th.
-         if(maxAmpl > 14000){ continue; }
+         // Select pulses only in a good range
+         if(maxAmpl > 14000 || maxAmpl < 1000 ){ continue; }
 
          // Jump if the peak happens too close to the edges of the waveform
          if( ((maxBin-startROI) < 0) || ((maxBin+endROI) > m_wave.size()) ) {
@@ -198,7 +199,7 @@ void findCoincidences(){
          int counts=0;
          for( size_t bin=maxBin-startROI; bin<maxBin+endROI; bin++, counts++) {
 
-           double time = (counts-startROI)*2.0;
+           double time = (counts-startROI)*2.0-1.0;
            m_roi->Fill(time, m_wave[bin]);
            m_roi->SetBinError(counts, 1.0);
 
