@@ -8,7 +8,7 @@
 
 #include "TFile.h"
 #include "TChain.h"
-#include "TH1D.h"
+#include "TProfile.h"
 #include "TProfile.h"
 #include "TMinuit.h"
 #include "TMath.h"
@@ -71,7 +71,7 @@ double Scintillation::allComponentFcn( double* x, double * par ) {
 
 
 
-  return par[8] + fastc + intmc + slowc ;
+  return par[8]+fastc + intmc + slowc ;
 
 };
 
@@ -97,16 +97,19 @@ int Scintillation::fitResponse( TProfile *prof ) {
 
  fitf->SetParLimits( 0, -10, 5 );
  fitf->SetParLimits( 1, 1.0, 20 );
+ fitf->FixParameter( 2, 6.0  );
  //fitf->SetParLimits( 2, 4.0, 30 );
+ fitf->SetParLimits( 5, 0, 500 );
+ fitf->SetParLimits( 6, 0, 500 );
+ fitf->SetParLimits( 7, 0, 500 );
 
- //fitf->FixParameter( 2, 6.0 );
+ fitf->SetParLimits( 8, 0.0 , 5e-1 );
+ //fitf->FixParameter( 8, 0.0  );
 
- fitf->SetParLimits( 8, 1e-5 , 5e-3 );
 
+ int fitstatus = m_profile->Fit("allComponents", "RN", "", -100, 3000);
 
- int fitstatus = m_profile->Fit("allComponents", "RNL", "", -100, 3500);
-
- //std::cout << fitstatus << " " << fitf->GetChisquare() / fitf->GetNDF() << std::endl;
+ std::cout << fitstatus << " " << fitf->GetChisquare() / fitf->GetNDF() << std::endl;
 
  TF1 *fcomp[3];
 
@@ -131,9 +134,16 @@ int Scintillation::fitResponse( TProfile *prof ) {
  m_profile->GetListOfFunctions()->Add( fitf );
 
 
+ //m_res->
+
+
  TCanvas *c = new TCanvas("c", "c", 600, 500);
  m_profile->Draw("E1 same");
  c->SetLogy();
+
+ //TCanvas *c1 = new TCanvas("c1", "c1", 600, 200);
+ //m_res->Draw("SAME");
+ //c1->SetLogy();
 
  // Define the cumulative repsonse function and the three independed components
  // for drawing the fit
@@ -164,8 +174,67 @@ void getMetadata( std::string name, int &event, int &daqid, int &idx ) {
 }
 
 
+//------------------------------------------------------------------------------
+
+
+void saveToFile(string m_filename, std::map< int, std::vector<double> > m_results_map)
+{
+  std::ofstream myfile;
+  myfile.open(m_filename.c_str());
+
+  //Write the file header
+  myfile << "daqid,tm,etm,sigma,esigma,tauf,etauf,taui,etaui,taus,etaus,af,eaf,ai,eai,as,eas,p,ps,fitstatus,chi2,ndof,nevents\n";
+
+  // Write the lines
+  for( auto item : m_results_map ){
+    int pmtid = item.first;
+    std::string line = to_string(pmtid);
+    for( auto v : item.second ){
+      line += ","+to_string(v);
+    }
+    myfile << line+"\n";
+  }
+
+  myfile.close();
+
+}
+
+
 
 //------------------------------------------------------------------------------
+
+
+void binning( double tlow, double thigh, double tsep, double narrowW, double coarseW, int nbins, double *binning ) {
+
+  double lowEdge = tlow;
+  for( int bin=0; bin < nbins+1; bin++){
+
+    binning[bin] = lowEdge;
+
+    if( lowEdge<tsep ){
+      lowEdge += narrowW;
+    }
+    else{
+      lowEdge += coarseW;
+    }
+
+  }
+
+  return;
+}
+
+
+int findBin( double time, double *binning, int nbins ){
+
+  int ret=0;
+  for( int bin=0; bin<nbins-1; bin++ ){
+    if( time >  binning[bin] && time < binning[bin+1]) { ret = bin; break; }
+    else{ continue; }
+  }
+
+  return ret;
+
+}
 
 
 void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map, std::map<int , TH2D*> & m_color_map ){
@@ -176,7 +245,7 @@ void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map, std::ma
 
   // Check the first item and extract the boundaries
   TKey *firstKey = (TKey*)list->First();
-  TH1D *firstHist = (TH1D*)tfile->Get( firstKey->GetName() );
+  TProfile *firstHist = (TProfile*)tfile->Get( firstKey->GetName() );
 
   int nbins = firstHist->GetNbinsX();
   double width = firstHist->GetBinWidth(nbins);
@@ -186,17 +255,34 @@ void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map, std::ma
   std::vector<int> activeBoards = { 1,2,3,4,5,6,7,8,9,10,11 };;
   std::vector<int> activeChannels = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
 
+
+  //Get binning vector
+  // degine the number of bins I want
+  double tsep = -100; // moment when we start to apply the rebinning
+  double narroWidth = 2.0;
+  double coarseWidth = 4.0; // the new bin width
+
+  int nbinsNarrow = (tsep-tlow)/narroWidth ;
+  int nbinsCoarse = (thigh-tsep)/coarseWidth ;
+  int nbinsNew = nbinsNarrow+nbinsCoarse;
+
+  //std::cout << nbinsNarrow << " " << nbinsCoarse << " " << nbinsNew << std::endl;
+
+  double newBinning[nbinsNew+1];
+
+  binning( tlow, thigh, tsep, narroWidth, coarseWidth, nbinsNew, newBinning );
+
   for( int board : activeBoards ){
     for( int channel : activeChannels ){
 
       int daqid = board*16+channel;
 
       char pname[20]; sprintf(pname, "prof_daq%d", daqid);
-      TProfile *profile = new TProfile(pname, pname, nbins, tlow, thigh);
+      TProfile *profile = new TProfile(pname, pname, nbinsNew, newBinning);
       m_profile_map[daqid] = profile;
 
       char cname[20]; sprintf(cname, "cmap_daq%d", daqid);
-      TH2D *cmap = new TH2D(cname, cname, nbins, tlow, thigh, 100, 0.001, 1);
+      TH2D *cmap = new TH2D(cname, cname, 10, 0, 10, 100, 0.001, 1);
       m_color_map[daqid] = cmap;
 
     }
@@ -217,16 +303,21 @@ void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map, std::ma
     getMetadata( histname, event, daqid, idx );
 
 
-    TH1D *tmphist = (TH1D*)tfile->Get( theKey->GetName() );
+    // We get the raw waveform
+    TProfile *tmphist = (TProfile*)tfile->Get( theKey->GetName() );
+    //tmphist->Scale(1./tmphist->GetMaximum());
 
-    //tmphist->Scale(1./tmphist->Integral(0, -1));
-    tmphist->Scale(1./tmphist->GetMaximum());
 
+    // Fill the correct bin
     for( int bin=0; bin<tmphist->GetNbinsX(); bin++ ) {
 
         double value = tmphist->GetBinContent(bin);
-        m_profile_map[daqid]->Fill(tmphist->GetBinCenter(bin), value);
-        m_color_map[daqid]->Fill( tmphist->GetBinCenter(bin), value );
+        double time = tmphist->GetBinCenter(bin);
+
+        //cout << time << " " << m_profile_map[daqid]->FindBin(time) << endl;
+
+        m_profile_map[daqid]->Fill(time, value);
+        //m_color_map[daqid]->Fill(thisBin, value );
 
       }
   }
@@ -240,9 +331,12 @@ void mergeHist( TFile* tfile, std::map<int , TProfile*> & m_profile_map, std::ma
 void larResponse() {
 
 
-  std::string ifilename="./sample/coincidence_waveforms_run1882.root";
-  std::string outfilename="./sample/scintillation_fit_run1882.root";
+  int run = 1882;
 
+  std::string fittype = "settau";
+  std::string ifilename="./sample/coincidence_waveforms_run"+to_string(run)+".root";
+  std::string outfilename="./sample/scintillation_"+fittype+"_run"+to_string(run)+".root";
+  std::string dbfilename =  "./sample/db_"+fittype+"_run"+to_string(run)+".csv";
 
   //Read from file
   TFile *tfile = new TFile(ifilename.c_str());
@@ -254,14 +348,15 @@ void larResponse() {
 
   std::map<int , TProfile*> m_profile_map;
   std::map<int , TH2D*> m_color_map;
+  std::map<int , std::vector<double> > m_results_map;
   mergeHist( tfile,  m_profile_map, m_color_map );
 
 
   // HERE WE DO THE FIT --------------------------------------------------------
   std::cout << "FITTING: " << std::endl;
 
-  TFile *ofile = new TFile(outfilename.c_str(), "RECREATE");
 
+  TFile *ofile = new TFile(outfilename.c_str(), "RECREATE");
   for( auto & profileIt : m_profile_map ) {
 
     int daqid = profileIt.first;
@@ -269,14 +364,15 @@ void larResponse() {
     TH2D *cmap = m_color_map[daqid];
 
     // Just fit profile with the entries
-    if(prof->GetEntries() > 0 && daqid  == 120 ) {
+    if(prof->GetEntries() > 0 && daqid == 120) {
 
       std::cout << " >>>> " << daqid << " " << prof->GetName() << " " << prof->GetEntries() / 2000 << std::endl;
+
+      prof->Scale(1./prof->GetMaximum());
 
       // Here we do the fit
       Scintillation myScintillation;
       int fitstatus = myScintillation.fitResponse( prof );
-
 
       // Here we read the parameters <<< this is a good exit point if you want to save the paramters to file
       std::cout << "  Status of the fit: " << fitstatus << std::endl;
@@ -284,20 +380,33 @@ void larResponse() {
       TF1 *fitf = prof->GetFunction("allComponents");
 
 
-      std::vector<string> vnames={ "#t_m","#sigma", "#tau_{f}", "#tau_{i}", "#tau_{s}", "#a_{f}",   "#a_{i}",   "#a_{s}"  };
+      std::vector<string> vnames={ "#t_m","#sigma", "#tau_{f}", "#tau_{i}", "#tau_{s}", "#a_{f}",   "#a_{i}",   "#a_{s}", "p"  };
 
-      for( int i=0; i<vnames.size(); i++ ){
-        //std::cout << "  " << vnames[i] << " " << fitf->GetParameter(i) << " " << fitf->GetParError(i) << endl;
+      for( int i=0; i<vnames.size(); i++ ) {
+        std::cout << "  " << vnames[i] << " " << fitf->GetParameter(i) << " " << fitf->GetParError(i) << endl;
+        m_results_map[daqid].push_back( fitf->GetParameter(i) );
+        m_results_map[daqid].push_back( fitf->GetParError(i) );
+
       }
 
       std::cout << "  " << fitf->GetChisquare() << " " <<  fitf->GetNDF() << std::endl;
       std::cout << "\n";
 
+      m_results_map[daqid].push_back( fitstatus );
+      m_results_map[daqid].push_back( fitf->GetChisquare() );
+      m_results_map[daqid].push_back( fitf->GetNDF() );
+      m_results_map[daqid].push_back( prof->GetEntries() );
+
 
       prof->Write();
       cmap->Write();
+
+
     }
   }
+
+  std::cout << "Save to file" << std::endl;
+  saveToFile(dbfilename, m_results_map);
 
   std::cout << "ALL DONE" << std::endl;
 

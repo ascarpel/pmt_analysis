@@ -190,19 +190,19 @@ void Scintillation::fitResponse( TProfile *prof ) {
  double thigh = m_profile->GetBinLowEdge(nbins) + m_profile->GetBinWidth(nbins);
 
 
- double vthispar[m_pars]  = { 0.0, 5.0, 6.0, 50, 1400, 3.34, 3.4, 23 };
+ double vthispar[m_pars]  = { 0.0, 5.0, 6.0, 200, 1400, 3.34, 3.23, 23 };
  TF1 *fitf = new TF1("allComponents", Scintillation::allComponentFcn, -50, 2400, 8);
  fitf->SetParameters( vthispar );
  fitf->SetLineColor(kOrange);
  fitf->SetLineStyle(2);
 
 
- fitf->SetParLimits( 0, -5, 5 );
- fitf->SetParLimits( 1, 3.0, 20 );
+ //fitf->SetParLimits( 0, -5, 5 );
+ //fitf->SetParLimits( 1, 3.0, 20 );
  //fitf->SetParLimits( 2, 4.5, 6.5 );
  //fitf->SetParLimits( 3, 550, 700 );
- fitf->FixParameter( 2, 6.0 );
- //fitf->FixParameter( 3, 50 );
+ //fitf->FixParameter( 2, 6.0 );
+ fitf->SetParLimits( 3, 200, 500 );
  //fitf->SetParLimits( 4, 1350, 1600 );
  //fitf->FixParameter( 5, 4.0 );
  //fitf->FixParameter( 6, 4.0 );

@@ -134,7 +134,7 @@ void findCoincidences(){
 
         // Want to study only events max 1 pulses in the 10 us window
         // this would reduce pileup hopefully
-        if( pulses.size() > 0 && pulses.size() < 2) {
+        if( pulses.size() > 0 && pulses.size() < 3) {
 
           for( auto & pulse : pulses ){
 
@@ -189,7 +189,7 @@ void findCoincidences(){
          double maxAmpl = m_pulse.amplitude;
 
          // Select pulses only in a good range
-         if(maxAmpl > 14000 || maxAmpl < 1000 ){ continue; }
+         if(maxAmpl > 14000 || maxAmpl < 100 ){ continue; }
 
          // Jump if the peak happens too close to the edges of the waveform
          if( ((maxBin-startROI) < 0) || ((maxBin+endROI) > m_wave.size()) ) {

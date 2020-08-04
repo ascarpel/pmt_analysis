@@ -85,7 +85,7 @@ void fitWaveform( TH1D *m_wave, double t_min, double t_max  ) {
   func->SetLineWidth(2);
 
   // DO the fit: also do refit two more times if minimization didn't succeed.
-  int status = m_wave->Fit(funcname,"NR+","",t_min, t_max);
+  int status = m_wave->Fit(funcname,"R+","",t_min, t_max);
   double par[5];
   for(int k=0; k<2; k++){
     for(int j=0; j<4; j++){
@@ -102,8 +102,8 @@ void fitWaveform( TH1D *m_wave, double t_min, double t_max  ) {
 
 
 void fit_waveform(
-  string filename="",
-  string ofilename="",
+  string filename="~/Desktop/ICARUS/PMT/pmt_analysis/pulsefinding/run1067_dl1_001.root",
+  string ofilename="test.root",
   int startevent=0,
   int eventmax=10,
   int board = 0,
