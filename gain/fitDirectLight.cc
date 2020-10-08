@@ -229,8 +229,8 @@ int main( int argc, char* argv[] ) {
   // As usual define some handy variables in here
   std::map< int, std::vector<double> > m_results_map;
   const int nhvpoints = 3;
-  int startch = 20; // <<< Edit to select a start channel
-  int endch = 360; // << Edit to selec an end channel
+  int startch = 350; // <<< Edit to select a start channel
+  int endch = 359; // << Edit to selec an end channel
 
   std::string histfilename, outfilename, databasename;
   for ( int i=1; i<argc; i=i+2 )
@@ -250,8 +250,8 @@ int main( int argc, char* argv[] ) {
 
   std::cout << "\nLOAD METADATA: " << std::endl;
 
-  std::map<int, double> m_hvpmt_map;
-  loadPMTData( m_hvpmt_map );
+  //std::map<int, double> m_hvpmt_map;
+  //loadPMTData( m_hvpmt_map );
 
 
   //----------------------------------------------------------------------------
@@ -277,15 +277,13 @@ int main( int argc, char* argv[] ) {
       stringbuff.push_back( token );
     }
 
-    int ch = stoi( stringbuff[3] );
-
+    int ch = stoi( stringbuff[1] );
     m_hists[ch].push_back( (TH1D*)tfile->Get(theKey->GetName()) );
 
   }
 
 
   //----------------------------------------------------------------------------
-
 
   std::cout << "\nFIT DATA: " << std::endl;
 
@@ -297,21 +295,28 @@ int main( int argc, char* argv[] ) {
 
     cout << " >>> Fit channel: " << ch << endl;
 
-    double nomhv = m_hvpmt_map[ch];
+    ///double nomhv = m_hvpmt_map[ch];
 
-    double hv[nhvpoints] = {nomhv-50, nomhv, nomhv+30};
+    //double hv[nhvpoints] = {nomhv-50, nomhv, nomhv+30};
     double q[3] = {0.0, 0.0, 0.0};
     double eq[3] = {0.0, 0.0, 0.0};
 
+    std::vector<int> points = {2,4,5};
+    std::vector<TH1D*> m_fit_hists; // << Allocates only the actual histograms for the fit
+
+    for(int point : points ){
+      m_fit_hists.push_back(m_hists[ch][point-1]);
+    }
+
     for(int i=0; i<nhvpoints; i++) {
-      m_results_map[ch].push_back( m_hists[ch][i]->GetEntries() );
+      m_results_map[ch].push_back( m_fit_hists[i]->GetEntries() );
     }
 
     //check if it is low or high charge
-    if ( isHighCharge( m_hists[ch] ) )
+    if ( isHighCharge( m_fit_hists ) )
     {
 
-      HighChargeFit myfitter( m_hists[ch], true );
+      HighChargeFit myfitter( m_fit_hists, true );
       myfitter.multiHistFit();
 
       //outfile->cd();
@@ -341,7 +346,9 @@ int main( int argc, char* argv[] ) {
     else
     {
 
-      ChargeFit myfitter( m_hists[ch], true );
+      continue;
+      /*
+      ChargeFit myfitter( m_fit_hists, true );
 
       //outfile->cd();
       myfitter.multiHistFit();
@@ -367,11 +374,12 @@ int main( int argc, char* argv[] ) {
       m_results_map[ch].push_back( chi2 );
       m_results_map[ch].push_back( ndf );
       m_results_map[ch].push_back( myfitter.GetFitstatus() );
+      */
 
     }
 
 
-    fitGainCurve( ch,  hv, q, eq, m_results_map);
+    //fitGainCurve( ch,  hv, q, eq, m_results_map);
 
   }
 
@@ -381,7 +389,8 @@ int main( int argc, char* argv[] ) {
 
   std::cout << " Save results to file " << std::endl;
 
-  saveToFile(databasename, m_results_map);
+  //saveToFile(databasename, m_results_map);
+
 
   std::cout << "All done!" << std::endl;
 

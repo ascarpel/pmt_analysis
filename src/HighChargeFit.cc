@@ -53,22 +53,22 @@ HighChargeFit::~HighChargeFit()
 void HighChargeFit::loadInitialConditions()
 {
 
-  double vstart[m_parameters]={ 20,
-                            1.0,  0.5, m_hist_array[0]->Integral()*0.5,
-                            1.6, 0.5,  m_hist_array[1]->Integral()*0.5,
-                            2.0, 0.5,  m_hist_array[2]->Integral()*0.5 };
-  double step[m_parameters]={ 2,
+  double vstart[m_parameters]={ 15,
+                            0.8,  0.5, m_hist_array[0]->Integral()*0.5,
+                            0.8, 0.5,  m_hist_array[1]->Integral()*0.5,
+                            0.8, 0.5,  m_hist_array[2]->Integral()*0.5 };
+  double step[m_parameters]={ 0.2,
                               0.01, 0.1, 0.1,
                               0.01, 0.1, 0.1,
                               0.01, 0.1, 0.1 };
-  double minVal[m_parameters]={ 0,
-                                0.8,  0.1,  0.0,
-                                0.9,  0.1,  0.0,
-                                1.0,  0.1,  0.0};
-  double maxVal[m_parameters]={ 30,
-                                2, 10, m_hist_array[0]->Integral()*2,
-                                3, 10, m_hist_array[1]->Integral()*2,
-                                4, 10, m_hist_array[2]->Integral()*2 };
+  double minVal[m_parameters]={ 1.0,
+                                0.1,  0.1,  0.0,
+                                0.2,  0.1,  0.0,
+                                0.3,  0.1,  0.0};
+  double maxVal[m_parameters]={ 20,
+                                2.0, 10, m_hist_array[0]->Integral()*2,
+                                2.2, 10, m_hist_array[1]->Integral()*2,
+                                2.4, 10, m_hist_array[2]->Integral()*2 };
   string parName[m_parameters]={ "npe",
                              "q1", "w1", "a1",
                              "q2", "w2", "a2",
@@ -120,7 +120,7 @@ double HighChargeFit::jointFit(double npe,
       double ey = this->m_hist_array[i]->GetBinError(j+1);
       double prediction = 0;
 
-      for(int k=1;k<100;k++){
+      for(int k=1;k<50;k++){
         prediction += (TMath::Power(npe,k)*TMath::Exp(-1.0*npe)/TMath::Factorial(k)
           *TMath::Exp(-1.0*(x-q[i]*k)*(x-q[i]*k)
             /(2.0*k*sigma[i]*sigma[i]))/(sigma[i]*TMath::Sqrt(2.0*TMath::Pi()*k)));
