@@ -40,7 +40,8 @@ class HighChargeFit
     double jointFit(double npe,
                     double Q1, double w1, double a1,
                     double Q2, double w2, double a2,
-                    double Q3, double w3, double a3);
+                    double Q3, double w3, double a3,
+                    double Q4, double w4, double a4);
 
 
 
@@ -70,7 +71,7 @@ class HighChargeFit
     vector<TH1D*> m_hist_array;
     bool m_normalize=false;
 
-    static const int m_parameters = 10;
+    static const int m_parameters = 13;
 
     double m_chi2=0;
     int m_ndf=0;

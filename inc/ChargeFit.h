@@ -39,10 +39,11 @@ class ChargeFit
                     double Q1, double w1, double a1,
                     double Q2, double w2, double a2,
                     double Q3, double w3, double a3,
+                    double Q4, double w4, double a4,
                     double pedm1, double pedw1, double pedamp1, double pedtau1,
                     double pedm2, double pedw2, double pedamp2, double pedtau2,
-                    double pedm3, double pedw3, double pedamp3, double pedtau3);
-
+                    double pedm3, double pedw3, double pedamp3, double pedtau3,
+                    double pedm4, double pedw4, double pedamp4, double pedtau4 );
 
 
     static void jointFitFunc(int &npar, double * deriv, double &f, double * par, int iflag);
@@ -71,7 +72,7 @@ class ChargeFit
     vector<TH1D*> m_hist_array;
     bool m_normalize=false;
 
-    static const int m_parameters = 22;
+    static const int m_parameters = 29;
 
     double m_chi2=0;
     int m_ndf=0;

@@ -56,23 +56,28 @@ void HighChargeFit::loadInitialConditions()
   double vstart[m_parameters]={ 15,
                             0.8,  0.5, m_hist_array[0]->Integral()*0.5,
                             0.8, 0.5,  m_hist_array[1]->Integral()*0.5,
+                            0.8, 0.5,  m_hist_array[2]->Integral()*0.5,
                             0.8, 0.5,  m_hist_array[2]->Integral()*0.5 };
   double step[m_parameters]={ 0.2,
+                              0.01, 0.1, 0.1,
                               0.01, 0.1, 0.1,
                               0.01, 0.1, 0.1,
                               0.01, 0.1, 0.1 };
   double minVal[m_parameters]={ 1.0,
                                 0.1,  0.1,  0.0,
                                 0.2,  0.1,  0.0,
-                                0.3,  0.1,  0.0};
+                                0.3,  0.1,  0.0,
+                                0.4,  0.1,  0.0};
   double maxVal[m_parameters]={ 20,
                                 2.0, 10, m_hist_array[0]->Integral()*2,
                                 2.2, 10, m_hist_array[1]->Integral()*2,
-                                2.4, 10, m_hist_array[2]->Integral()*2 };
+                                2.4, 10, m_hist_array[2]->Integral()*2,
+                                2.5, 10, m_hist_array[2]->Integral()*2 };
   string parName[m_parameters]={ "npe",
                              "q1", "w1", "a1",
                              "q2", "w2", "a2",
-                             "q3", "w3", "a3" };
+                             "q3", "w3", "a3",
+                             "q4", "w4", "a4" };
 
   for(int i=0; i<m_parameters; i++)
   {
@@ -93,16 +98,17 @@ void HighChargeFit::loadInitialConditions()
 double HighChargeFit::jointFit(double npe,
                            double Q1, double w1, double a1,
                            double Q2, double w2, double a2,
-                           double Q3, double w3, double a3 )
+                           double Q3, double w3, double a3,
+                           double Q4, double w4, double a4 )
 {
 
-  const int npoints = 3;
+  const int npoints = 4;
 
   // I have these parameters:
   //double npe = mu; // mean npe
-  double q[npoints]; q[0]=Q1; q[1]=Q2; q[2]=Q3;
-  double sigma[npoints]; sigma[0]=w1; sigma[1]=w2; sigma[2]=w3;
-  double amp[npoints]; amp[0]=a1; amp[1]=a2; amp[2]=a3;
+  double q[npoints]; q[0]=Q1; q[1]=Q2; q[2]=Q3; q[3]=Q4;
+  double sigma[npoints]; sigma[0]=w1; sigma[1]=w2; sigma[2]=w3; sigma[3]=w4;
+  double amp[npoints]; amp[0]=a1; amp[1]=a2; amp[2]=a3; amp[3]=a4;
 
   // compute the chi2
   int ndf=0;
@@ -150,7 +156,8 @@ void HighChargeFit::jointFitFunc(int &npar, double * deriv, double &f, double * 
   f = fitobj_hc->jointFit(par[0],
                par[1], par[2], par[3],
                par[4], par[5], par[6],
-               par[7], par[8], par[9] );
+               par[7], par[8], par[9],
+               par[10], par[11], par[12] );
 };
 
 
@@ -247,10 +254,11 @@ void HighChargeFit::getCanvas()
   string cname(m_hist_array[0]->GetName());
 
   //Dereference the histogram to a static copy
-  TH1D hist_array[3];
+  TH1D hist_array[4];
   hist_array[0] = *m_hist_array[0];
   hist_array[1] = *m_hist_array[1];
   hist_array[2] = *m_hist_array[2];
+  hist_array[3] = *m_hist_array[3];
 
   TCanvas *c = new TCanvas(cname.c_str(), cname.c_str(), 600, 400);
   hist_array[0].SetLineColor(1);
@@ -259,21 +267,20 @@ void HighChargeFit::getCanvas()
   hist_array[1].Draw("hist same");
   hist_array[2].SetLineColor(3);
   hist_array[2].Draw("hist same");
+  hist_array[3].SetLineColor(4);
+  hist_array[3].Draw("hist same");
 
-  TF1* func[3];
+  TF1* func[4];
   char text[50];
-  for(int i=0; i<3; i++)
+  for(int i=0; i<4; i++)
   {
-     sprintf(text, "func%d", i);
-     func[i] = new TF1(text, HighChargeFit::singleFitFunc, 0, 150, 4);
-     func[i]->SetNpx(2000);
-     func[i]->SetParameters(m_result[0],
-                            m_result[i*3+1], m_result[i*3+2], m_result[i*3+3] );
-
+    sprintf(text, "func%d", i);
+    func[i] = new TF1(text, HighChargeFit::singleFitFunc, 0, 150, 4);
+    func[i]->SetNpx(2000);
+    func[i]->SetParameters(m_result[0], m_result[i*3+1], m_result[i*3+2], m_result[i*3+3] );
     func[i]->SetLineColor(i+1);
     func[i]->SetLineStyle(2);
     func[i]->Draw("same");
-
   }
 
   c->Write();

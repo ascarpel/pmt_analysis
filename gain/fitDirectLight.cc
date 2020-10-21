@@ -191,7 +191,7 @@ void saveToFile(string m_filename, std::map< int, std::vector<double> > m_result
   myfile.open(m_filename.c_str());
 
   //Write the file header
-  myfile << "pmt,n1,n2,n3,n4,type,npe,q1,q2,q3,q4,eq1,eq2,eq3,eq4,cgchi2,ndf,fitstatus,a,k,ea,ek,V,eV,chi2\n";
+  myfile << "pmt,n1,n2,n3,n4,type,npe,q1,q2,q3,q4,eq1,eq2,eq3,eq4,cgchi2,ndf,fitstatus,warmV,a,k,ea,ek,V,eV,chi2\n";
 
   // Write the lines
   for( auto item : m_results_map ){
@@ -277,7 +277,11 @@ int main( int argc, char* argv[] ) {
     }
 
     int ch = stoi( stringbuff[1] );
-    std::cout << ch << std::endl;
+
+    if( theKey->GetName() == "Sy1527Wch_1" ){
+      continue;
+    }
+
     m_hists[ch].push_back( (TH1D*)tfile->Get(theKey->GetName()) );
 
   }
@@ -293,24 +297,30 @@ int main( int argc, char* argv[] ) {
 
     m_results_map[ch].clear();
 
-    cout << " >>> Fit channel: " << ch << endl;
+    cout << " >>> Fit channel_id: " << ch << " pmt_id: " << 360-ch << endl;
 
     double nomhv = m_hvpmt_map[360-ch];
-    std::cout << nomhv << std::endl;
 
     double hv[nhvpoints];
-    double q[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
-    double eq[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+    double q[4] = {0.0, 0.0, 0.0, 0.0};
+    double eq[4] = {0.0, 0.0, 0.0, 0.0};
 
     // This part is crucual to pass the histogram from the file to the fitter in good order
     std::vector<int> points = {2,3,4,5}; // this is the fixed order which appears in the file
     std::vector<int> index = {0,1,2,3}; // this is the actual index to sort the histograms in ascending order
     std::vector<TH1D*> m_fit_hists; // << Allocates only the actual histograms for the fit
 
+    cout << "Nominal (warm): " << nomhv << " " << "Voltage points: ";
     for(size_t i=0; i<points.size(); i++ ){
+
+      double voltpoint = nomhv+50.0*(points[i]-1);
+      cout << voltpoint << " ";
+
       hv[i] = nomhv+50.0*(points[i]-1);
       m_fit_hists.push_back(m_hists[ch][index[i]]);
     }
+    cout << "\n";
+
 
     //check if it is low or high charge
     if ( isHighCharge( m_fit_hists ) )
@@ -351,14 +361,12 @@ int main( int argc, char* argv[] ) {
       m_results_map[ch].push_back( chi2 );
       m_results_map[ch].push_back( ndf );
       m_results_map[ch].push_back( myfitter.GetFitstatus() );
+      m_results_map[ch].push_back( nomhv );
 
     }
     else
     {
 
-      continue;
-
-      /*
       for(int i=0; i<nhvpoints; i++) {
         m_results_map[ch].push_back( m_fit_hists[i]->GetEntries() );
       }
@@ -371,10 +379,10 @@ int main( int argc, char* argv[] ) {
 
       myfitter.getCanvas();
 
-
       myfitter.getParameters(1, q[0], eq[0]);
       myfitter.getParameters(4, q[1], eq[1]);
       myfitter.getParameters(7, q[2], eq[2]);
+      myfitter.getParameters(10, q[3], eq[3]);
 
       double chi2=0;
       int ndf=0;
@@ -384,13 +392,15 @@ int main( int argc, char* argv[] ) {
       m_results_map[ch].push_back( q[0] );
       m_results_map[ch].push_back( q[1] );
       m_results_map[ch].push_back( q[2] );
+      m_results_map[ch].push_back( q[3] );
       m_results_map[ch].push_back( eq[0] );
       m_results_map[ch].push_back( eq[1] );
       m_results_map[ch].push_back( eq[2] );
+      m_results_map[ch].push_back( eq[3] );
       m_results_map[ch].push_back( chi2 );
       m_results_map[ch].push_back( ndf );
       m_results_map[ch].push_back( myfitter.GetFitstatus() );
-      */
+      m_results_map[ch].push_back( nomhv );
 
     }
 
