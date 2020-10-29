@@ -5,6 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "ChargeFit.h"
+#include "TPaveText.h"
 
 static ChargeFit* fitobj;
 
@@ -87,10 +88,10 @@ void ChargeFit::loadInitialConditions()
                          -0.05, 0.001, 0, 0.04,
                          -0.05, 0.001, 0, 0.04,};
   double maxVal[n_pars]={10,
-                         10, 10, m_hist_array[0]->Integral()/4.0,
-                         10, 10, m_hist_array[1]->Integral()/4.0,
-                         10, 10, m_hist_array[2]->Integral()/4.0,
-                         10, 10, m_hist_array[3]->Integral()/4.0,
+                         2, 10, m_hist_array[0]->Integral()/4.0,
+                         3, 10, m_hist_array[1]->Integral()/4.0,
+                         4, 10, m_hist_array[2]->Integral()/4.0,
+                         5, 10, m_hist_array[3]->Integral()/4.0,
                          0.05, 0.5, m_hist_array[0]->Integral(bin1[0],bin2[0])*10, 0.2,
                          0.05, 0.5, m_hist_array[1]->Integral(bin1[1],bin2[1])*10, 0.2,
                          0.05, 0.5, m_hist_array[2]->Integral(bin1[2],bin2[2])*10, 0.2 ,
@@ -151,7 +152,7 @@ double ChargeFit::jointFit(double npe,
     chi2[i]=0.0;
     int nbins = (int)this->m_hist_array[i]->GetNbinsX();//200;
 
-    for(int j=15; j<nbins-1; j++){
+    for(int j=10; j<nbins-1; j++){
       double x = this->m_hist_array[i]->GetBinCenter(j+1);
       double y = this->m_hist_array[i]->GetBinContent(j+1);
       double ey = this->m_hist_array[i]->GetBinError(j+1);
@@ -243,37 +244,63 @@ void ChargeFit::multiHistFit( )
 
 
   // do the Fit
-  minimizer->Command("SET PRINT -3");//
+  minimizer->Command("SET PRINT 1");//
+  minimizer->mnscan();
+  minimizer->SetPrintLevel(0);
   Int_t e=0;
   minimizer->mnexcm("SET NOWarnings", 0, 0, e);
 
   int fitstatus= minimizer->Migrad();
 
-
-  // Refit if doesn't converge
-  if(fitstatus==4)
-  {
-    for(int i=0; i<m_parameters; i++)
-    {
-      minimizer->GetParameter(i, m_result[i], m_errors[i]);
-      minimizer->DefineParameter(i, m_parname[i].c_str(), m_result[i],
-                                      m_step[i]/2.0,  m_minval[i], m_maxval[i]);
-    }
-    fitstatus = minimizer->Migrad();
-    cout << "status of the second fit " << fitstatus << endl;
-  }
-
-  // Now we get the paramters
   for(int i=0; i<m_parameters; i++){
     minimizer->GetParameter(i, m_result[i], m_errors[i]);
   }
 
-  // Here we get the result from the fit
   double amin,edm,errdef;
   int nvpar,nparx,icstat;
   minimizer->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
   cout<<amin<<"\t"<<m_ndf-m_parameters<<"\t"
               <<edm<<"\t"<<errdef<<"\t"<<nvpar<<"\t"<<nparx<<"\t"<<icstat<<endl;
+
+
+  // Refit if doesn't converge
+  if(fitstatus==4)
+  {
+    for(int i=0; i<m_parameters; i++){
+      minimizer->DefineParameter(i, m_parname[i].c_str(), m_result[i],
+                                      m_step[i]/2.0,  m_minval[i], m_maxval[i]);
+    }
+
+    fitstatus = minimizer->Migrad();
+    for(int i=0; i<m_parameters; i++){
+      minimizer->GetParameter(i, m_result[i], m_errors[i]);
+    }
+
+    cout << "status of the second fit " << fitstatus << endl;
+    minimizer->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
+    cout<<amin<<"\t"<<m_ndf-m_parameters<<"\t"
+                <<edm<<"\t"<<errdef<<"\t"<<nvpar<<"\t"<<nparx<<"\t"<<icstat<<endl;
+  }
+
+  // Refit if doesn't converge
+  if(fitstatus==4)
+  {
+    for(int i=0; i<m_parameters; i++){
+      minimizer->DefineParameter(i, m_parname[i].c_str(), m_result[i],
+                                      m_step[i]/3.0,  m_minval[i], m_maxval[i]);
+    }
+
+    fitstatus = minimizer->Migrad();
+    for(int i=0; i<m_parameters; i++){
+      minimizer->GetParameter(i, m_result[i], m_errors[i]);
+    }
+
+    cout << "status of the last fit " << fitstatus << endl;
+    minimizer->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
+    cout<<amin<<"\t"<<m_ndf-m_parameters<<"\t"
+                <<edm<<"\t"<<errdef<<"\t"<<nvpar<<"\t"<<nparx<<"\t"<<icstat<<endl;
+  }
+
   cout<<"---fit results "<<endl;
   for(int i=0; i<m_parameters; i++){
     cout<<m_parname[i]<<"\t"<<m_result[i]<<"\t"<<m_errors[i]<<endl;
@@ -320,6 +347,30 @@ void ChargeFit::getCanvas()
     func[i]->Draw("same");
 
   }
+
+  char gname[100];
+  TPaveText* ptGainPar = new TPaveText(0.6, 0.55, 0.9, 0.9,"brNDC");
+  sprintf(gname,"#chi^2 / ndf = %.0f/%d", m_chi2, m_ndf-13);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#mu = %.2f #pm %.2e", m_result[0], m_errors[0]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,".................................");
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[1]{q_{1} = %.2f #pm %.2e}", m_result[1], m_errors[1]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[2]{q_{2} = %.2f #pm %.2e}", m_result[4], m_errors[4]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[3]{q_{3} = %.2f #pm %.2e}", m_result[7], m_errors[7]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[4]{q_{4} = %.2f #pm %.2e}", m_result[10], m_errors[10]);
+  ptGainPar->AddText(gname);
+
+  ptGainPar->SetBorderSize(0);
+  ptGainPar->SetFillColor(0);
+  ptGainPar->SetTextFont(42);
+  //ptGainPar->SetTextSize(14);
+  ptGainPar->SetTextAlign(12);
+  ptGainPar->Draw();
 
   c->Write();
 

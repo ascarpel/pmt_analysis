@@ -10,7 +10,7 @@
 export EIGEN_INSTALL="/usr/local/include/eigen3"
 
 # This part of the code is effective only on a fnal.gov domain
-if [[ "${HOSTNAME#*.}" == "sdcc.bnl.gov" ]]; then
+if [[ "${HOSTNAME#*.}" == "fnal.gov" ]]; then
 
   echo "Setup using /cvmfs/ at 'S{HOSTNAME#*.}'"
 

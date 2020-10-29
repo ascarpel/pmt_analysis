@@ -7,6 +7,7 @@
 #include "TMinuit.h"
 #include "TFitter.h"
 #include "HighChargeFit.h"
+#include "TPaveText.h"
 
 static HighChargeFit* fitobj_hc;
 
@@ -53,26 +54,27 @@ HighChargeFit::~HighChargeFit()
 void HighChargeFit::loadInitialConditions()
 {
 
-  double vstart[m_parameters]={ 15,
-                            0.8,  0.5, m_hist_array[0]->Integral()*0.5,
-                            0.8, 0.5,  m_hist_array[1]->Integral()*0.5,
-                            0.8, 0.5,  m_hist_array[2]->Integral()*0.5,
-                            0.8, 0.5,  m_hist_array[2]->Integral()*0.5 };
-  double step[m_parameters]={ 0.2,
-                              0.01, 0.1, 0.1,
-                              0.01, 0.1, 0.1,
-                              0.01, 0.1, 0.1,
-                              0.01, 0.1, 0.1 };
-  double minVal[m_parameters]={ 1.0,
+  double vstart[m_parameters]={ 18,
+                            0.5, 0.5, m_hist_array[0]->Integral()*0.5,
+                            0.6, 0.5, m_hist_array[1]->Integral()*0.5,
+                            0.7, 0.5, m_hist_array[2]->Integral()*0.5,
+                            0.8, 0.5, m_hist_array[3]->Integral()*0.5 };
+  double step[m_parameters]={ 0.1,
+                              0.01, 0.01, 0.1,
+                              0.01, 0.01, 0.1,
+                              0.01, 0.01, 0.1,
+                              0.01, 0.01, 0.1 };
+  double minVal[m_parameters]={ 8,
                                 0.1,  0.1,  0.0,
                                 0.2,  0.1,  0.0,
                                 0.3,  0.1,  0.0,
                                 0.4,  0.1,  0.0};
-  double maxVal[m_parameters]={ 20,
-                                2.0, 10, m_hist_array[0]->Integral()*2,
-                                2.2, 10, m_hist_array[1]->Integral()*2,
-                                2.4, 10, m_hist_array[2]->Integral()*2,
-                                2.5, 10, m_hist_array[2]->Integral()*2 };
+  double maxVal[m_parameters]={ 28,
+                                2.0, 3, m_hist_array[0]->Integral()*2.0,
+                                2.2, 3, m_hist_array[1]->Integral()*2.0,
+                                2.4, 3, m_hist_array[2]->Integral()*2.0,
+                                2.6, 3, m_hist_array[3]->Integral()*2.0 };
+
   string parName[m_parameters]={ "npe",
                              "q1", "w1", "a1",
                              "q2", "w2", "a2",
@@ -112,11 +114,11 @@ double HighChargeFit::jointFit(double npe,
 
   // compute the chi2
   int ndf=0;
-  double chi2=0;
+  double chi2[4];
 
   for(int i=0; i<npoints; i++)
   {
-
+    chi2[i]=0.0;
     int nbins = (int)this->m_hist_array[i]->GetNbinsX();//200;
 
     for(int j=0; j<nbins-1; j++)
@@ -125,25 +127,25 @@ double HighChargeFit::jointFit(double npe,
       double y = this->m_hist_array[i]->GetBinContent(j+1);
       double ey = this->m_hist_array[i]->GetBinError(j+1);
       double prediction = 0;
+      double p2 = 0;
 
       for(int k=1;k<50;k++){
-        prediction += (TMath::Power(npe,k)*TMath::Exp(-1.0*npe)/TMath::Factorial(k)
+        p2 += (TMath::Power(npe,k)*TMath::Exp(-1.0*npe)/TMath::Factorial(k)
           *TMath::Exp(-1.0*(x-q[i]*k)*(x-q[i]*k)
-            /(2.0*k*sigma[i]*sigma[i]))/(sigma[i]*TMath::Sqrt(2.0*TMath::Pi()*k)));
+            /(2.0*k*sigma[i]*sigma[i]))/(sigma[i]*TMath::Sqrt(2.0*TMath::Pi()*k)) ) ;
       }
 
+      prediction = p2*amp[i];
+
       if(ey!=0){
-        chi2 += TMath::Power( y-prediction*amp[i] , 2)/(ey*ey); // the chi2 function
+        chi2[i] += TMath::Power( y-prediction , 2)/(ey*ey); // the chi2 function
         ndf++;
       }
     }
   }
 
-  //cout << chi2 << " " << q[0] << "\t" << q[1] << "\t" << q[2] << endl;
-  //cout << chi2 << " " << amp[0] << "\t" << amp[1] << "\t" << amp[2] << endl;
-
   fitobj_hc->m_ndf=ndf;
-  return chi2;
+  return chi2[0]+chi2[1]+chi2[2]+chi2[3];
 
 };
 
@@ -201,29 +203,77 @@ void HighChargeFit::multiHistFit( )
   }
 
   // do the Fit
-  minimizer->Command("SET PRINT -3");//
+  minimizer->Command("SET PRINT 1");//
+  minimizer->mnscan();
+  minimizer->SetPrintLevel(0);
 
-  Int_t e=0; Double_t nbr = -1;
-  minimizer->mnexcm("SET NOW", &nbr, 0, e);
+  Int_t ierrs=0;
+  minimizer->mnexcm("SET NOWarnings", 0, 0, ierrs);
   int fitstatus= minimizer->Migrad();
 
-  // Refit if doesn't converge
+
+  for(int i=0; i<m_parameters; i++){
+    minimizer->GetParameter(i, m_result[i], m_errors[i]);
+  }
+
+  // Continue minimization, but slower, if if didn't converge
   if(fitstatus==4)
   {
-    for(int i=0; i<m_parameters; i++)
-    {
-      minimizer->GetParameter(i, m_result[i], m_errors[i]);
+    for(int i=0; i<m_parameters; i++){
       minimizer->DefineParameter(i, m_parname[i].c_str(), m_result[i],
                                       m_step[i]/2.0,  m_minval[i], m_maxval[i]);
     }
     fitstatus = minimizer->Migrad();
     cout << "status of the second fit " << fitstatus << endl;
+    for(int i=0; i<m_parameters; i++){
+      minimizer->GetParameter(i, m_result[i], m_errors[i]);
+    }
   }
 
-  // Now we get the paramters
-  for(int i=0; i<m_parameters; i++){
-    minimizer->GetParameter(i, m_result[i], m_errors[i]);
+  // We might need to minimize again, now move close to the found npe value
+  if(fitstatus==4 || ((int)m_result[0] == (int)m_minval[0]) ){
+
+      double newpars[m_parameters];
+      double newsteps[m_parameters];
+      double newmax[m_parameters];
+      double newmin[m_parameters];
+
+      for(int i=0; i<m_parameters; i++){
+        newpars[i] = m_result[i];
+        newsteps[i] = m_step[i];
+        newmax[i] = m_minval[i];
+        newmin[i] = m_maxval[i];
+      }
+
+      newmax[0] = newpars[0]+4;
+      newmin[0] = newpars[0]-4;
+      newsteps[0] = 0.01;
+
+      for(int i=0; i<m_parameters; i++){
+        minimizer->DefineParameter(i, m_parname[i].c_str(), newpars[i], newsteps[i],
+                               newmin[i], newmax[i]);
+      }
+      fitstatus = minimizer->Migrad();
+      cout<<"status of the third fit "<<fitstatus<<endl;
+      for(int i=0; i<m_parameters; i++){
+        minimizer->GetParameter(i, m_result[i], m_errors[i]);
+      }
   }
+
+  // If still gives troubles
+  if(fitstatus==4)
+  {
+    for(int i=0; i<m_parameters; i++){
+      minimizer->DefineParameter(i, m_parname[i].c_str(), m_result[i],
+                                      m_step[i]/2.0,  m_minval[i], m_maxval[i]);
+    }
+    fitstatus = minimizer->Migrad();
+    cout << "status of the last fit " << fitstatus << endl;
+    for(int i=0; i<m_parameters; i++){
+      minimizer->GetParameter(i, m_result[i], m_errors[i]);
+    }
+  }
+
 
   // Here we get the result from the fit
   double amin,edm,errdef;
@@ -282,6 +332,30 @@ void HighChargeFit::getCanvas()
     func[i]->SetLineStyle(2);
     func[i]->Draw("same");
   }
+
+  char gname[100];
+  TPaveText* ptGainPar = new TPaveText(0.6, 0.55, 0.9, 0.9,"brNDC");
+  sprintf(gname,"#chi^2 / ndf = %.0f/%d", m_chi2, m_ndf-13);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#mu = %.2f #pm %.2e", m_result[0], m_errors[0]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,".................................");
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[1]{q_{1} = %.2f #pm %.2e}", m_result[1], m_errors[1]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[2]{q_{2} = %.2f #pm %.2e}", m_result[4], m_errors[4]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[3]{q_{3} = %.2f #pm %.2e}", m_result[7], m_errors[7]);
+  ptGainPar->AddText(gname);
+  sprintf(gname,"#color[4]{q_{4} = %.2f #pm %.2e}", m_result[10], m_errors[10]);
+  ptGainPar->AddText(gname);
+
+  ptGainPar->SetBorderSize(0);
+  ptGainPar->SetFillColor(0);
+  ptGainPar->SetTextFont(42);
+  //ptGainPar->SetTextSize(14);
+  ptGainPar->SetTextAlign(12);
+  ptGainPar->Draw();
 
   c->Write();
 

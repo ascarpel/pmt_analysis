@@ -174,8 +174,20 @@ void fitGainCurve( int ch,  double hv[4], double q[4], double eq[4],
 
 bool isHighCharge( vector<TH1D*> hist_array )
 {
+
+  double xlow = hist_array[0]->GetXaxis()->GetBinCenter(0);
+
+  if(xlow > 0){
+    return true;
+  }
+
   int bin1 = hist_array[0]->GetXaxis()->FindBin(-0.1);
   int bin2 = hist_array[0]->GetXaxis()->FindBin(0.1);
+
+  if( bin1 == 0 || bin2 ==0  ){
+    return true;
+  }
+
   double ratio = hist_array[3]->Integral(bin1, bin2)/hist_array[3]->Integral();
 
   return (ratio <= 0.01) ? true : false;
@@ -228,8 +240,8 @@ int main( int argc, char* argv[] ) {
   // As usual define some handy variables in here
   std::map< int, std::vector<double> > m_results_map;
   const int nhvpoints = 4;
-  int startch = 330; // <<< Edit to select a start channel
-  int endch = 339; // << Edit to selec an end channel
+  int startch = 0; // <<< Edit to select a start channel
+  int endch = 179; // << Edit to selec an end channel
 
   std::string histfilename, outfilename, databasename;
   for ( int i=1; i<argc; i=i+2 )
@@ -278,10 +290,6 @@ int main( int argc, char* argv[] ) {
 
     int ch = stoi( stringbuff[1] );
 
-    if( theKey->GetName() == "Sy1527Wch_1" ){
-      continue;
-    }
-
     m_hists[ch].push_back( (TH1D*)tfile->Get(theKey->GetName()) );
 
   }
@@ -326,6 +334,8 @@ int main( int argc, char* argv[] ) {
     if ( isHighCharge( m_fit_hists ) )
     {
 
+      std::cout << "IS HIGH CHARGE" << std::endl;
+
       for(int i=0; i<nhvpoints; i++) {
         m_results_map[ch].push_back( m_fit_hists[i]->GetEntries() );
       }
@@ -367,6 +377,8 @@ int main( int argc, char* argv[] ) {
     else
     {
 
+      std::cout << "IS LOW CHARGE" << std::endl;
+
       for(int i=0; i<nhvpoints; i++) {
         m_results_map[ch].push_back( m_fit_hists[i]->GetEntries() );
       }
@@ -379,6 +391,8 @@ int main( int argc, char* argv[] ) {
 
       myfitter.getCanvas();
 
+      double npe, enpe;
+      myfitter.getParameters(0, npe, enpe);
       myfitter.getParameters(1, q[0], eq[0]);
       myfitter.getParameters(4, q[1], eq[1]);
       myfitter.getParameters(7, q[2], eq[2]);
@@ -389,6 +403,7 @@ int main( int argc, char* argv[] ) {
       myfitter.GetChisquare( chi2, ndf );
 
       m_results_map[ch].push_back( 1 );
+      m_results_map[ch].push_back(npe);
       m_results_map[ch].push_back( q[0] );
       m_results_map[ch].push_back( q[1] );
       m_results_map[ch].push_back( q[2] );
