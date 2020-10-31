@@ -316,7 +316,7 @@ void ChargeFit::multiHistFit( )
 //------------------------------------------------------------------------------
 
 
-void ChargeFit::getCanvas()
+void ChargeFit::getCanvas(int ch)
 {
 
   string cname(m_hist_array[0]->GetName());
@@ -350,6 +350,8 @@ void ChargeFit::getCanvas()
 
   char gname[100];
   TPaveText* ptGainPar = new TPaveText(0.6, 0.55, 0.9, 0.9,"brNDC");
+  sprintf(gname,"PMT: %d", 360-ch);
+  ptGainPar->AddText(gname);
   sprintf(gname,"#chi^2 / ndf = %.0f/%d", m_chi2, m_ndf-13);
   ptGainPar->AddText(gname);
   sprintf(gname,"#mu = %.2f #pm %.2e", m_result[0], m_errors[0]);

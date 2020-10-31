@@ -22,89 +22,48 @@
 
 //------------------------------------------------------------------------------
 
-
-std::string make_string( int run, int optch ){
-  return std::to_string(run)+"_"+std::to_string(optch);
-}
-
-
-std::map<std::string, double> loadHVData()
+void loadPMTData(std::map< int, std::vector<double> > & hvmap)
 {
 
-  std::map<std::string, double> m_hv_map;
-
-  string filename="../dbase/ICARUS_cables_labels_v17.csv";
+  string filename="../dbase/hvpoint/hvdbase.csv";
   string line="";
 
   ifstream file(filename);
 
-  //Skip the fist line
-  getline(file, line);
-
   while(getline(file, line))
   {
     istringstream s_stream(line);
-    std::string token;
-    vector<std::string> vec;
+    string token;
+    vector<string> vec;
+
     while( getline(s_stream, token, ',') ){
-      vec.push_back(token);
+      vec.push_back( token );
     }
 
-    double voltage = stoi(vec[0]);
-    std::string hvlabel(vec[3]);
-    m_hv_map[hvlabel] = voltage;
-  }
-
-  file.close();
-
-  return m_hv_map;
-
-}
-
-void loadPMTData( std::map<int, double> & m_hvpmt_map ) {
-
-  std::map<std::string, double> m_hvmap = loadHVData();
-
-  string filename="../dbase/ICARUS_PMT_placement.csv";
-  string line="";
-
-  ifstream file(filename);
-
-  getline(file, line);
-
-  while(getline(file, line))
-  {
-    istringstream s_stream(line);
-    std::string token;
-    vector<std::string> vec;
-    while( getline(s_stream, token, ',') )
-    {
-      vec.push_back(token);
+    int pmt = int(stod(vec[0]));
+    for(int i=1; i<7; i++){
+      hvmap[pmt].push_back( stod(vec[i]) );
     }
-
-    int pmtid = stoi(vec[0]);
-    std::string numhvlabel;
-
-    if( stoi(vec[13]) < 10 ){ numhvlabel="0"+vec[13]; }
-    else{ numhvlabel=vec[13]; }
-
-    std::string hvlabel = vec[12]+"-"+numhvlabel;
-
-    double voltage = m_hvmap[hvlabel];
-
-    m_hvpmt_map[pmtid] = voltage;
   }
-
-  file.close();
 
   return;
-
 }
 
 //------------------------------------------------------------------------------
 
 void fitGainCurve( int ch,  double hv[4], double q[4], double eq[4],
                         std::map< int, std::vector<double> > & m_results_map ) {
+
+
+    double hvmax=0.0; double hvmin=9999.0;
+    for( int i=0; i<4; i++ ){
+      if( hv[i] > hvmax ){
+        hvmax = hv[i];
+      }
+      if(hv[i] < hvmin){
+        hvmin = hv[i];
+      }
+    }
 
     char gname[100];
     sprintf(gname, "gain_ch%d", ch);
@@ -130,12 +89,14 @@ void fitGainCurve( int ch,  double hv[4], double q[4], double eq[4],
       a=fGain->GetParameter(0);
       b=fGain->GetParameter(1);
       fGain->SetParameters(a,b);
-      gGain->Fit("fGain","QR","",hv[0]-10, hv[3]+10);
+      gGain->Fit("fGain","QR","",hvmin-10, hvmax+10);
     }
     a=fGain->GetParameter(0);
     b=fGain->GetParameter(1);
     cGain->Update();
     TPaveText* ptGainPar = new TPaveText(0.2,0.7,0.6,0.9,"brNDC");
+    sprintf(gname,"PMT: %d", 360-ch);
+    ptGainPar->AddText(gname);
     sprintf(gname,"chi2/ndf = %.2f/%d",fGain->GetChisquare(), fGain->GetNDF());
     ptGainPar->AddText(gname);
     sprintf(gname,"a = %e #pm %e", a, fGain->GetParError(0));
@@ -157,9 +118,9 @@ void fitGainCurve( int ch,  double hv[4], double q[4], double eq[4],
     cGain->Update();
     cGain->Write();
 
-    m_results_map[ch].push_back( a );
+    m_results_map[ch].push_back( a*1e24 );
     m_results_map[ch].push_back( b );
-    m_results_map[ch].push_back( fGain->GetParError(0) );
+    m_results_map[ch].push_back( fGain->GetParError(0)*1e24 );
     m_results_map[ch].push_back( fGain->GetParError(1) );
     m_results_map[ch].push_back( V0 );
     m_results_map[ch].push_back( V0err );
@@ -240,8 +201,8 @@ int main( int argc, char* argv[] ) {
   // As usual define some handy variables in here
   std::map< int, std::vector<double> > m_results_map;
   const int nhvpoints = 4;
-  int startch = 0; // <<< Edit to select a start channel
-  int endch = 179; // << Edit to selec an end channel
+  int startch = 180; // <<< Edit to select a start channel
+  int endch = 359; // << Edit to selec an end channel
 
   std::string histfilename, outfilename, databasename;
   for ( int i=1; i<argc; i=i+2 )
@@ -249,6 +210,8 @@ int main( int argc, char* argv[] ) {
     if      ( std::string(argv[i]) == "-i" ) histfilename = argv[i+1];
     else if ( std::string(argv[i]) == "-o" ) outfilename = argv[i+1];
     else if ( std::string(argv[i]) == "-d" ) databasename = argv[i+1];
+    else if ( std::string(argv[i]) == "-s" ) startch = atoi(argv[i+1]);
+    else if ( std::string(argv[i]) == "-e" ) endch = atoi(argv[i+1]);
     else {
       std::cout << "Unknown option " << argv[i+1] << std::endl;
       return 1;
@@ -261,8 +224,8 @@ int main( int argc, char* argv[] ) {
 
   std::cout << "\nLOAD METADATA: " << std::endl;
 
-  std::map<int, double> m_hvpmt_map;
-  loadPMTData( m_hvpmt_map );
+  std::map< int, std::vector<double> > hvmap;
+  loadPMTData(hvmap);
 
 
   //----------------------------------------------------------------------------
@@ -289,7 +252,6 @@ int main( int argc, char* argv[] ) {
     }
 
     int ch = stoi( stringbuff[1] );
-
     m_hists[ch].push_back( (TH1D*)tfile->Get(theKey->GetName()) );
 
   }
@@ -297,7 +259,7 @@ int main( int argc, char* argv[] ) {
 
   //----------------------------------------------------------------------------
 
-  std::cout << "\nFIT DATA: " << std::endl;
+  std::cout << "\nFIT DATA in range [ " << startch << ", " << endch << "]:" << std::endl;
 
   TFile *outfile = new TFile(outfilename.c_str(), "RECREATE");
 
@@ -307,7 +269,7 @@ int main( int argc, char* argv[] ) {
 
     cout << " >>> Fit channel_id: " << ch << " pmt_id: " << 360-ch << endl;
 
-    double nomhv = m_hvpmt_map[360-ch];
+    double nomhv = hvmap[360-ch][0];
 
     double hv[nhvpoints];
     double q[4] = {0.0, 0.0, 0.0, 0.0};
@@ -321,17 +283,16 @@ int main( int argc, char* argv[] ) {
     cout << "Nominal (warm): " << nomhv << " " << "Voltage points: ";
     for(size_t i=0; i<points.size(); i++ ){
 
-      double voltpoint = nomhv+50.0*(points[i]-1);
-      cout << voltpoint << " ";
+      cout << hvmap[360-ch][index[i]+1] << " ";
 
-      hv[i] = nomhv+50.0*(points[i]-1);
+      hv[i] = hvmap[360-ch][index[i]+1];
       m_fit_hists.push_back(m_hists[ch][index[i]]);
     }
     cout << "\n";
 
 
     //check if it is low or high charge
-    if ( isHighCharge( m_fit_hists ) )
+    if ( isHighCharge( m_fit_hists ) && ch != 89 )
     {
 
       std::cout << "IS HIGH CHARGE" << std::endl;
@@ -344,7 +305,7 @@ int main( int argc, char* argv[] ) {
       myfitter.multiHistFit();
 
       //outfile->cd();
-      myfitter.getCanvas();
+      myfitter.getCanvas(ch);
 
       double npe, enpe;
       myfitter.getParameters(0, npe, enpe);
@@ -374,7 +335,7 @@ int main( int argc, char* argv[] ) {
       m_results_map[ch].push_back( nomhv );
 
     }
-    else
+    else if( !isHighCharge( m_fit_hists ) )
     {
 
       std::cout << "IS LOW CHARGE" << std::endl;
@@ -389,7 +350,7 @@ int main( int argc, char* argv[] ) {
       //outfile->cd();
       myfitter.multiHistFit();
 
-      myfitter.getCanvas();
+      myfitter.getCanvas(ch);
 
       double npe, enpe;
       myfitter.getParameters(0, npe, enpe);
@@ -419,6 +380,7 @@ int main( int argc, char* argv[] ) {
 
     }
 
+    std::cout << "Fit gain curve" << std::endl;
     fitGainCurve( ch,  hv, q, eq, m_results_map);
 
   }

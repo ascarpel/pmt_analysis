@@ -62,7 +62,7 @@ class HighChargeFit
 
     int GetFitstatus(){ return m_fitstatus; }
 
-    void getCanvas();
+    void getCanvas(int ch);
 
     void clean(){ m_hist_array.clear(); }
 
