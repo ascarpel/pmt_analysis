@@ -232,7 +232,7 @@ int main( int argc, char **argv ){
   std::string input = argv[1];
   std::cout << ">>> Process input: " << input << std::endl;
 
-  TChain tchain( "calo/pulsetree" );
+  TChain tchain( "pulseana/ophittree" );
   tchain.Add( input.c_str() );
 
   int nevents = atoi(argv[3]);
@@ -245,10 +245,10 @@ int main( int argc, char **argv ){
   std::vector<float> *m_pulse_amplitude = 0;
   std::vector<float> *m_pulse_integral = 0;
 
-  tchain.SetBranchAddress("m_pmt_array", & m_pmt_array);
-  tchain.SetBranchAddress("m_pulse_time", & m_pulse_time);
-  tchain.SetBranchAddress("m_pulse_amplitude", & m_pulse_amplitude);
-  tchain.SetBranchAddress("m_pulse_integral", & m_pulse_integral);
+  tchain.SetBranchAddress("channel_id", & m_pmt_array);
+  tchain.SetBranchAddress("tstart", & m_pulse_time);
+  tchain.SetBranchAddress("amplitude", & m_pulse_amplitude);
+  tchain.SetBranchAddress("integral", & m_pulse_integral);
 
 
   // Event loop ................................................................
